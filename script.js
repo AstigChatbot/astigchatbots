@@ -90,6 +90,15 @@ document.addEventListener('DOMContentLoaded', () => {
         deployCommit: 'cherry.deploy.commit'
     };
 
+    function safeStorageGet(key, fallback = '') {
+        try {
+            const value = localStorage.getItem(key);
+            return value ?? fallback;
+        } catch (_) {
+            return fallback;
+        }
+    }
+
     // State for interactive actions
     let isAskingForEmail = false;
 
