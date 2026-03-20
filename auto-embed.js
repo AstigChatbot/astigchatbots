@@ -123,6 +123,20 @@ body.embed-widget-mode .chat-launcher {
     panel.style.boxShadow = 'none';
     panel.style.background = 'transparent';
 
+    const loading = document.createElement('div');
+    loading.textContent = 'Loading Cherry...';
+    loading.style.position = 'absolute';
+    loading.style.inset = '0';
+    loading.style.display = 'grid';
+    loading.style.placeItems = 'center';
+    loading.style.color = '#e2e8f0';
+    loading.style.fontFamily = "'Outfit', sans-serif";
+    loading.style.fontSize = '16px';
+    loading.style.letterSpacing = '0.02em';
+    loading.style.background = 'rgba(15, 23, 42, 0.28)';
+    loading.style.backdropFilter = 'blur(8px)';
+    loading.style.webkitBackdropFilter = 'blur(8px)';
+
     const iframe = document.createElement('iframe');
     iframe.allow = 'clipboard-read; clipboard-write; microphone; autoplay';
     iframe.style.width = '100%';
@@ -130,6 +144,12 @@ body.embed-widget-mode .chat-launcher {
     iframe.style.border = '0';
     iframe.style.display = 'block';
     iframe.style.background = 'transparent';
+    iframe.style.opacity = '0';
+    iframe.addEventListener('load', () => {
+      loading.style.display = 'none';
+      iframe.style.opacity = '1';
+    }, { once: true });
+    panel.appendChild(loading);
     panel.appendChild(iframe);
 
     return { panel, iframe };
@@ -140,19 +160,32 @@ body.embed-widget-mode .chat-launcher {
     const { panel, iframe } = createPanel();
     let isOpen = false;
     let isLoaded = false;
+    let isLoading = false;
+    const preloadPromise = getAppMarkup().catch((error) => {
+      console.error(error);
+      return null;
+    });
 
     async function ensureLoaded() {
-      if (isLoaded) return;
-      iframe.srcdoc = await getAppMarkup();
+      if (isLoaded || isLoading) return;
+      isLoading = true;
+      const markup = await preloadPromise || await getAppMarkup();
+      if (!markup) {
+        isLoading = false;
+        return;
+      }
+      iframe.srcdoc = markup;
       isLoaded = true;
+      isLoading = false;
     }
 
     async function setOpen(nextOpen) {
+      if (isLoading && nextOpen !== isOpen) return;
       isOpen = nextOpen;
       panel.hidden = !isOpen;
       launcher.setAttribute('aria-expanded', String(isOpen));
       if (isOpen) {
-        await ensureLoaded();
+        ensureLoaded().catch((error) => console.error(error));
       }
     }
 
