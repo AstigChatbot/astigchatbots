@@ -65,6 +65,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const WEBHOOK_URL_TEST = 'https://n8n.srv1291312.hstgr.cloud/webhook-test/33042864-3282-4dd6-95ab-6ffa983a8196';
     const DEFAULT_GITHUB_REPO = 'AstigChatbot/astigchatbots';
     const DEFAULT_GITHUB_BRANCH = 'main';
+    const CURRENT_EMBED_COMMIT = '1682f3d';
+    const DEFAULT_EMBED_RUNTIME_BASE = `https://cdn.jsdelivr.net/gh/AstigChatbot/astigchatbots@${CURRENT_EMBED_COMMIT}`;
+    const DEFAULT_EMBED_APP_BASE = `https://cdn.jsdelivr.net/gh/AstigChatbot/astigchatbots@${CURRENT_EMBED_COMMIT}`;
     let currentWebhookUrl = WEBHOOK_URL_PROD;
 
     const STORAGE_KEYS = {
@@ -81,7 +84,10 @@ document.addEventListener('DOMContentLoaded', () => {
         webhookProd: 'cherry.webhook.prod',
         webhookTest: 'cherry.webhook.test',
         webhookChat: 'cherry.webhook.chat',
-        webhookActive: 'cherry.webhook.active'
+        webhookActive: 'cherry.webhook.active',
+        embedRuntimeBase: 'cherry.embed.runtimeBase',
+        embedAppBase: 'cherry.embed.appBase',
+        deployCommit: 'cherry.deploy.commit'
     };
 
     // State for interactive actions
@@ -595,24 +601,75 @@ document.addEventListener('DOMContentLoaded', () => {
         widgetDrawer.setAttribute('aria-hidden', show ? 'false' : 'true');
     }
 
-    function updateEmbedDefaults() {
-        const ghBase = 'https://cdn.jsdelivr.net/gh/AstigChatbot/astigchatbots@main';
-        if (embedJsUrlInput && !embedJsUrlInput.value) {
-            embedJsUrlInput.value = `${ghBase}/auto-embed.js`;
+    function getStoredEmbedBase(key, fallback) {
+        return safeStorageGet(key, fallback) || fallback;
+    }
+
+    function normalizeEmbedBase(base, fallback) {
+        const value = (base || '').trim();
+        if (!value) return fallback;
+        if (value.includes('@main')) return fallback;
+        if (value.includes('@cff2284')) return fallback;
+        return value;
+    }
+
+    function getActiveEmbedRuntimeBase() {
+        return normalizeEmbedBase(getStoredEmbedBase(STORAGE_KEYS.embedRuntimeBase, DEFAULT_EMBED_RUNTIME_BASE), DEFAULT_EMBED_RUNTIME_BASE);
+    }
+
+    function getActiveEmbedAppBase() {
+        return normalizeEmbedBase(getStoredEmbedBase(STORAGE_KEYS.embedAppBase, DEFAULT_EMBED_APP_BASE), DEFAULT_EMBED_APP_BASE);
+    }
+
+    function setActiveEmbedBases(runtimeBase, appBase, commitSha = '') {
+        try {
+            if (runtimeBase) localStorage.setItem(STORAGE_KEYS.embedRuntimeBase, runtimeBase);
+            if (appBase) localStorage.setItem(STORAGE_KEYS.embedAppBase, appBase);
+            if (commitSha) {
+                localStorage.setItem(STORAGE_KEYS.deployCommit, commitSha);
+            } else {
+                localStorage.removeItem(STORAGE_KEYS.deployCommit);
+            }
+        } catch (_) {
+            // Ignore storage failures; the code block will still update for this session.
         }
-        if (embedCssUrlInput && !embedCssUrlInput.value) {
-            embedCssUrlInput.value = 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css';
+
+        if (embedJsUrlInput) {
+            embedJsUrlInput.value = `${runtimeBase || getActiveEmbedRuntimeBase()}/auto-embed.js`;
+        }
+        if (embedCssUrlInput) {
+            embedCssUrlInput.value = `${appBase || getActiveEmbedAppBase()}/index.html`;
         }
     }
 
+    function updateEmbedDefaults() {
+        setActiveEmbedBases(getActiveEmbedRuntimeBase(), getActiveEmbedAppBase());
+    }
+
     function buildEmbedCode() {
-        const jsUrl = (embedJsUrlInput?.value || '').trim() || 'https://cdn.jsdelivr.net/gh/AstigChatbot/astigchatbots@main/auto-embed.js';
-        const cssUrl = (embedCssUrlInput?.value || '').trim() || 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css';
+        const runtimeBase = ((embedJsUrlInput?.value || '').trim().replace(/\/auto-embed\.js$/i, '')) || getActiveEmbedRuntimeBase();
+        const appBase = ((embedCssUrlInput?.value || '').trim().replace(/\/index\.html$/i, '')) || getActiveEmbedAppBase();
+        const jsUrl = `${runtimeBase}/auto-embed.js`;
+        const appUrl = `${appBase}/index.html`;
         const webhook = currentWebhookUrl || WEBHOOK_URL_PROD;
-        const useDefaultCss = cssUrl === 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css';
-        return useDefaultCss
-            ? `<script src="${jsUrl}" data-webhook="${webhook}"></script>`
-            : `<script src="${jsUrl}" data-webhook="${webhook}" data-css="${cssUrl}"></script>`;
+        const iconUrl = (widgetIconInput?.value || safeStorageGet(STORAGE_KEYS.launcherIcon, '') || '').trim();
+        const shape = widgetShapeSelect?.value || safeStorageGet(STORAGE_KEYS.launcherShape, 'circle') || 'circle';
+        const anim = widgetAnimSelect?.value || safeStorageGet(STORAGE_KEYS.launcherAnim, 'none') || 'none';
+        const is3d = widget3dCheckbox?.checked ?? ((safeStorageGet(STORAGE_KEYS.launcher3d, 'false') || 'false') === 'true');
+        const attrs = [
+            `src="${jsUrl}"`,
+            `data-webhook="${webhook}"`,
+            `data-app-url="${appUrl}"`,
+            `data-icon-shape="${shape}"`,
+            `data-icon-anim="${anim}"`,
+            `data-icon-3d="${String(is3d)}"`
+        ];
+
+        if (iconUrl) {
+            attrs.splice(3, 0, `data-icon-url="${iconUrl}"`);
+        }
+
+        return `<script ${attrs.join(' ')}></script>`;
     }
 
     function updateEmbedCode() {
