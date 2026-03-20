@@ -65,20 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const WEBHOOK_URL_TEST = 'https://n8n.srv1291312.hstgr.cloud/webhook-test/33042864-3282-4dd6-95ab-6ffa983a8196';
     const DEFAULT_GITHUB_REPO = 'AstigChatbot/astigchatbots';
     const DEFAULT_GITHUB_BRANCH = 'main';
-    const DEFAULT_EMBED_RUNTIME_BASE = 'https://cdn.jsdelivr.net/gh/AstigChatbot/astigchatbots@43f050b';
-    const DEFAULT_EMBED_APP_BASE = 'https://cdn.jsdelivr.net/gh/AstigChatbot/astigchatbots@97e7c59';
     let currentWebhookUrl = WEBHOOK_URL_PROD;
-    const runtimeParams = new URLSearchParams(window.location.search);
-    const runtimeConfig = window.__CHERRY_RUNTIME_CONFIG || {};
-    const EMBED_MODE = runtimeParams.get('embed') === '1' || runtimeConfig.embed === true;
-    const EMBED_WIDGET_MODE = runtimeParams.get('widget') === '1' || runtimeConfig.widget === true;
-
-    if (EMBED_MODE) {
-        document.body.classList.add('embed-mode');
-    }
-    if (EMBED_WIDGET_MODE) {
-        document.body.classList.add('embed-widget-mode');
-    }
 
     const STORAGE_KEYS = {
         repo: 'cherry.github.repo',
