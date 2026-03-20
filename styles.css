@@ -48,6 +48,12 @@ body {
     align-items: center;
 }
 
+body.embed-mode {
+    overflow: hidden;
+    align-items: stretch;
+    justify-content: stretch;
+}
+
 .app-logo {
     position: fixed;
     top: 18px;
@@ -614,6 +620,26 @@ body {
     position: relative;
 }
 
+body.embed-mode .app-logo,
+body.embed-mode .floating-menu,
+body.embed-mode .left-menu,
+body.embed-mode .chat-launcher {
+    display: none !important;
+}
+
+body.embed-mode .main-container {
+    width: 100%;
+    max-width: none;
+    height: 100dvh;
+    padding: 14px;
+}
+
+body.embed-mode .form-interface {
+    width: 100%;
+    max-width: none;
+    height: 100%;
+}
+
 /* Character Section (Deprecated/Removed from HTML flow, styles repurposed) */
 .character-section {
     display: none;
@@ -791,33 +817,6 @@ body {
     display: flex;
     align-items: center;
     gap: 10px;
-}
-
-.emoji-greeters {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-left: 6px;
-}
-
-.emoji-greeters picture {
-    width: 32px;
-    height: 32px;
-    display: inline-flex;
-}
-
-.emoji-greeters img {
-    width: 100%;
-    height: 100%;
-}
-
-.hug-emoji img {
-    animation: hugPulse 2.8s ease-in-out infinite;
-}
-
-.wave-emoji img {
-    animation: waveHello 2s ease-in-out infinite;
-    transform-origin: 70% 70%;
 }
 
 .status-dot {
@@ -1251,52 +1250,6 @@ input:checked+.slider:before {
 /* Rounded sliders */
 .slider.round {
     border-radius: 34px;
-}
-
-@keyframes hugPulse {
-    0% {
-        transform: scale(0.94);
-    }
-
-    50% {
-        transform: scale(1.08);
-    }
-
-    100% {
-        transform: scale(0.94);
-    }
-}
-
-@keyframes waveHello {
-    0% {
-        transform: rotate(0deg);
-    }
-
-    20% {
-        transform: rotate(16deg);
-    }
-
-    40% {
-        transform: rotate(-10deg);
-    }
-
-    60% {
-        transform: rotate(12deg);
-    }
-
-    80% {
-        transform: rotate(-6deg);
-    }
-
-    100% {
-        transform: rotate(0deg);
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .emoji-greeters img {
-        animation: none;
-    }
 }
 
 /* Loading Dots Animation */

@@ -66,6 +66,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const DEFAULT_GITHUB_REPO = 'AstigChatbot/astigchatbots';
     const DEFAULT_GITHUB_BRANCH = 'main';
     let currentWebhookUrl = WEBHOOK_URL_PROD;
+    const runtimeParams = new URLSearchParams(window.location.search);
+    const EMBED_MODE = runtimeParams.get('embed') === '1';
+    const RUNTIME_WEBHOOK = (runtimeParams.get('webhook') || '').trim();
+    const RUNTIME_MODE = (runtimeParams.get('mode') || '').trim();
+
+    if (EMBED_MODE) {
+        document.body.classList.add('embed-mode');
+    }
 
     const STORAGE_KEYS = {
         repo: 'cherry.github.repo',
@@ -609,10 +617,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const jsUrl = (embedJsUrlInput?.value || '').trim() || 'https://cdn.jsdelivr.net/gh/AstigChatbot/astigchatbots@main/auto-embed.js';
         const cssUrl = (embedCssUrlInput?.value || '').trim() || 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css';
         const webhook = currentWebhookUrl || WEBHOOK_URL_PROD;
+        const launcherIcon = (localStorage.getItem(STORAGE_KEYS.launcherIcon) || '').trim();
+        const launcherShape = (localStorage.getItem(STORAGE_KEYS.launcherShape) || 'circle').trim() || 'circle';
         const useDefaultCss = cssUrl === 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css';
-        return useDefaultCss
-            ? `<script src="${jsUrl}" data-webhook="${webhook}"></script>`
-            : `<script src="${jsUrl}" data-webhook="${webhook}" data-css="${cssUrl}"></script>`;
+        let appUrl = 'https://cdn.jsdelivr.net/gh/AstigChatbot/astigchatbots@main/index.html';
+        try {
+            appUrl = new URL('index.html', jsUrl).href;
+        } catch (_) { /* ignore */ }
+        const attrs = [
+            `src="${jsUrl}"`,
+            `data-webhook="${webhook}"`,
+            `data-app-url="${appUrl}"`
+        ];
+        if (!useDefaultCss) attrs.push(`data-css="${cssUrl}"`);
+        if (launcherIcon) attrs.push(`data-icon-url="${launcherIcon}"`);
+        if (launcherShape) attrs.push(`data-icon-shape="${launcherShape}"`);
+        return `<script ${attrs.join(' ')}></script>`;
     }
 
     function updateEmbedCode() {
@@ -685,6 +705,7 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem(STORAGE_KEYS.launcherAnim, anim);
         localStorage.setItem(STORAGE_KEYS.launcher3d, String(is3d));
         applyLauncher(label, subtext, icon, shape, anim, is3d, iconSize);
+        updateEmbedCode();
         setWidgetStatus('Launcher saved.', 'success');
     }
 
@@ -900,13 +921,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function downloadEmbedJs() {
         const containerId = (embedContainerIdInput?.value || 'cherry-embed').trim() || 'cherry-embed';
-        const content = `(() => {\n  const target = (document.currentScript.dataset.target) || '${containerId}';\n  const host = '${window.location.origin}';\n  const container = document.getElementById(target);\n  if (!container) return;\n  const iframe = document.createElement('iframe');\n  iframe.src = host;\n  iframe.allow = 'clipboard-read; clipboard-write; microphone; autoplay';\n  iframe.style = 'width:100%;min-height:520px;border:0;border-radius:16px;box-shadow:0 12px 30px rgba(0,0,0,0.25);';\n  container.innerHTML = '';\n  container.appendChild(iframe);\n})();\n`;
+        const runtimeUrl = new URL(window.location.origin);
+        runtimeUrl.searchParams.set('embed', '1');
+        runtimeUrl.searchParams.set('webhook', currentWebhookUrl || WEBHOOK_URL_PROD);
+        const content = `(() => {\n  const target = (document.currentScript.dataset.target) || '${containerId}';\n  const container = document.getElementById(target);\n  if (!container) return;\n  const iframe = document.createElement('iframe');\n  iframe.src = '${runtimeUrl.toString()}';\n  iframe.allow = 'clipboard-read; clipboard-write; microphone; autoplay';\n  iframe.style = 'width:100%;min-height:760px;border:0;border-radius:24px;box-shadow:0 12px 30px rgba(0,0,0,0.25);background:transparent;';\n  container.innerHTML = '';\n  container.appendChild(iframe);\n})();\n`;
         triggerDownload('cherry-embed.js', content, 'text/javascript');
     }
 
     function downloadEmbedCss() {
         const containerId = (embedContainerIdInput?.value || 'cherry-embed').trim() || 'cherry-embed';
-        const content = `#${containerId} {\n  width: 100%;\n  max-width: 480px;\n  margin: 0 auto;\n}\n#${containerId} iframe {\n  width: 100%;\n  min-height: 520px;\n  border: none;\n  border-radius: 16px;\n  box-shadow: 0 10px 30px rgba(0,0,0,0.2);\n  background: transparent;\n}\n`;
+        const content = `#${containerId} {\n  width: 100%;\n  max-width: 660px;\n  margin: 0 auto;\n}\n#${containerId} iframe {\n  width: 100%;\n  min-height: 760px;\n  border: none;\n  border-radius: 24px;\n  box-shadow: 0 10px 30px rgba(0,0,0,0.2);\n  background: transparent;\n}\n`;
         triggerDownload('cherry-embed.css', content, 'text/css');
     }
 
@@ -994,10 +1018,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function hydrateWebhookSettings() {
-        const prod = localStorage.getItem(STORAGE_KEYS.webhookProd) || WEBHOOK_URL_PROD;
+        const prod = RUNTIME_WEBHOOK || localStorage.getItem(STORAGE_KEYS.webhookProd) || WEBHOOK_URL_PROD;
         const test = localStorage.getItem(STORAGE_KEYS.webhookTest) || WEBHOOK_URL_TEST;
-        const chat = localStorage.getItem(STORAGE_KEYS.webhookChat) || '';
-        const active = localStorage.getItem(STORAGE_KEYS.webhookActive) || 'prod';
+        const chat = RUNTIME_WEBHOOK || localStorage.getItem(STORAGE_KEYS.webhookChat) || '';
+        const active = RUNTIME_MODE || localStorage.getItem(STORAGE_KEYS.webhookActive) || (RUNTIME_WEBHOOK ? 'chat' : 'prod');
 
         if (webhookProdInput) webhookProdInput.value = prod;
         if (webhookTestInput) webhookTestInput.value = test;
