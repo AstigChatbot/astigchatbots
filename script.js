@@ -890,13 +890,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return encodeBytesToBase64(new TextEncoder().encode(text));
     }
 
-    function getCurrentDocumentHtml() {
-        const doctype = document.doctype
-            ? `<!DOCTYPE ${document.doctype.name}${document.doctype.publicId ? ` PUBLIC "${document.doctype.publicId}"` : ''}${!document.doctype.publicId && document.doctype.systemId ? ' SYSTEM' : ''}${document.doctype.systemId ? ` "${document.doctype.systemId}"` : ''}>\n`
-            : '<!DOCTYPE html>\n';
-        return `${doctype}${document.documentElement.outerHTML}`;
-    }
-
     function getEmbeddedDeployManifest() {
         const el = document.getElementById('deploy-manifest');
         if (!el?.textContent) return null;
@@ -908,10 +901,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function fetchFileContentBase64(file) {
-        if (file === 'index.html') {
-            return encodeTextToBase64(getCurrentDocumentHtml());
-        }
-
         const embeddedManifest = getEmbeddedDeployManifest();
         if (embeddedManifest?.[file]) {
             return embeddedManifest[file];
