@@ -81,7 +81,10 @@ document.addEventListener('DOMContentLoaded', () => {
         webhookProd: 'cherry.webhook.prod',
         webhookTest: 'cherry.webhook.test',
         webhookChat: 'cherry.webhook.chat',
-        webhookActive: 'cherry.webhook.active'
+        webhookActive: 'cherry.webhook.active',
+        embedRuntimeBase: 'cherry.embed.runtimeBase',
+        embedAppBase: 'cherry.embed.appBase',
+        deployCommit: 'cherry.deploy.commit'
     };
 
     // State for interactive actions
@@ -595,24 +598,71 @@ document.addEventListener('DOMContentLoaded', () => {
         widgetDrawer.setAttribute('aria-hidden', show ? 'false' : 'true');
     }
 
-    function updateEmbedDefaults() {
-        const ghBase = 'https://cdn.jsdelivr.net/gh/AstigChatbot/astigchatbots@main';
-        if (embedJsUrlInput && !embedJsUrlInput.value) {
-            embedJsUrlInput.value = `${ghBase}/auto-embed.js`;
-        }
-        if (embedCssUrlInput && !embedCssUrlInput.value) {
-            embedCssUrlInput.value = 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css';
+    function getStoredEmbedBase(key, fallback) {
+        try {
+            return localStorage.getItem(key) || fallback;
+        } catch (_) {
+            return fallback;
         }
     }
 
+    function getActiveEmbedRuntimeBase() {
+        return getStoredEmbedBase(STORAGE_KEYS.embedRuntimeBase, DEFAULT_EMBED_RUNTIME_BASE);
+    }
+
+    function getActiveEmbedAppBase() {
+        return getStoredEmbedBase(STORAGE_KEYS.embedAppBase, DEFAULT_EMBED_APP_BASE);
+    }
+
+    function setActiveEmbedBases(runtimeBase, appBase, commitSha = '') {
+        try {
+            if (runtimeBase) localStorage.setItem(STORAGE_KEYS.embedRuntimeBase, runtimeBase);
+            if (appBase) localStorage.setItem(STORAGE_KEYS.embedAppBase, appBase);
+            if (commitSha) {
+                localStorage.setItem(STORAGE_KEYS.deployCommit, commitSha);
+            } else {
+                localStorage.removeItem(STORAGE_KEYS.deployCommit);
+            }
+        } catch (_) {
+            // Ignore storage failures; the code block will still update for this session.
+        }
+
+        if (embedJsUrlInput) {
+            embedJsUrlInput.value = `${runtimeBase || getActiveEmbedRuntimeBase()}/auto-embed.js`;
+        }
+        if (embedCssUrlInput) {
+            embedCssUrlInput.value = `${appBase || getActiveEmbedAppBase()}/index.html`;
+        }
+    }
+
+    function updateEmbedDefaults() {
+        setActiveEmbedBases(getActiveEmbedRuntimeBase(), getActiveEmbedAppBase());
+    }
+
     function buildEmbedCode() {
-        const jsUrl = (embedJsUrlInput?.value || '').trim() || 'https://cdn.jsdelivr.net/gh/AstigChatbot/astigchatbots@main/auto-embed.js';
-        const cssUrl = (embedCssUrlInput?.value || '').trim() || 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css';
+        const runtimeBase = ((embedJsUrlInput?.value || '').trim().replace(/\/auto-embed\.js$/i, '')) || getActiveEmbedRuntimeBase();
+        const appBase = ((embedCssUrlInput?.value || '').trim().replace(/\/index\.html$/i, '')) || getActiveEmbedAppBase();
+        const jsUrl = `${runtimeBase}/auto-embed.js`;
+        const appUrl = `${appBase}/index.html`;
         const webhook = currentWebhookUrl || WEBHOOK_URL_PROD;
-        const useDefaultCss = cssUrl === 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css';
-        return useDefaultCss
-            ? `<script src="${jsUrl}" data-webhook="${webhook}"></script>`
-            : `<script src="${jsUrl}" data-webhook="${webhook}" data-css="${cssUrl}"></script>`;
+        const iconUrl = (widgetIconInput?.value || localStorage.getItem(STORAGE_KEYS.launcherIcon) || '').trim();
+        const shape = widgetShapeSelect?.value || localStorage.getItem(STORAGE_KEYS.launcherShape) || 'circle';
+        const anim = widgetAnimSelect?.value || localStorage.getItem(STORAGE_KEYS.launcherAnim) || 'none';
+        const is3d = widget3dCheckbox?.checked ?? ((localStorage.getItem(STORAGE_KEYS.launcher3d) || 'false') === 'true');
+        const attrs = [
+            `src="${jsUrl}"`,
+            `data-webhook="${webhook}"`,
+            `data-app-url="${appUrl}"`,
+            `data-icon-shape="${shape}"`,
+            `data-icon-anim="${anim}"`,
+            `data-icon-3d="${String(is3d)}"`
+        ];
+
+        if (iconUrl) {
+            attrs.splice(3, 0, `data-icon-url="${iconUrl}"`);
+        }
+
+        return `<script ${attrs.join(' ')}></script>`;
     }
 
     function updateEmbedCode() {
@@ -685,6 +735,7 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem(STORAGE_KEYS.launcherAnim, anim);
         localStorage.setItem(STORAGE_KEYS.launcher3d, String(is3d));
         applyLauncher(label, subtext, icon, shape, anim, is3d, iconSize);
+        updateEmbedCode();
         setWidgetStatus('Launcher saved.', 'success');
     }
 
@@ -728,21 +779,122 @@ document.addEventListener('DOMContentLoaded', () => {
         el.innerHTML = `<strong style="color:${color}">${Math.min(100, Math.max(0, percent))}%</strong> &nbsp; ${message}`;
     }
 
-    async function fetchSha(repoPath, branch, file, token) {
-        try {
-            const resp = await fetch(`https://api.github.com/repos/${repoPath}/contents/${file}?ref=${encodeURIComponent(branch)}`, {
-                headers: {
-                    'Accept': 'application/vnd.github+json',
-                    'Authorization': `Bearer ${token}`,
-                    'User-Agent': 'Cherry-Deploy'
-                }
-            });
-            if (resp.ok) {
-                const json = await resp.json();
-                return json.sha;
+    async function githubJson(url, token, options = {}) {
+        const resp = await fetch(url, {
+            ...options,
+            headers: {
+                'Accept': 'application/vnd.github+json',
+                'Authorization': `Bearer ${token}`,
+                'User-Agent': 'Cherry-Deploy',
+                ...(options.headers || {})
             }
-        } catch (_) { /* ignore */ }
-        return null;
+        });
+
+        if (!resp.ok) {
+            const text = await resp.text();
+            throw new Error(`GitHub ${resp.status}: ${text}`);
+        }
+
+        return resp.status === 204 ? null : resp.json();
+    }
+
+    async function fetchBranchHead(repoPath, branch, token) {
+        const ref = await githubJson(`https://api.github.com/repos/${repoPath}/git/ref/heads/${encodeURIComponent(branch)}`, token);
+        return ref?.object?.sha;
+    }
+
+    async function fetchCommit(repoPath, commitSha, token) {
+        return githubJson(`https://api.github.com/repos/${repoPath}/git/commits/${commitSha}`, token);
+    }
+
+    async function createBlob(repoPath, content, token) {
+        const json = await githubJson(`https://api.github.com/repos/${repoPath}/git/blobs`, token, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                content,
+                encoding: 'base64'
+            })
+        });
+        return json.sha;
+    }
+
+    async function createTree(repoPath, baseTreeSha, treeEntries, token) {
+        const json = await githubJson(`https://api.github.com/repos/${repoPath}/git/trees`, token, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                base_tree: baseTreeSha,
+                tree: treeEntries
+            })
+        });
+        return json.sha;
+    }
+
+    async function createCommit(repoPath, message, treeSha, parentSha, token) {
+        const json = await githubJson(`https://api.github.com/repos/${repoPath}/git/commits`, token, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                message,
+                tree: treeSha,
+                parents: [parentSha]
+            })
+        });
+        return json.sha;
+    }
+
+    async function updateBranchHead(repoPath, branch, commitSha, token) {
+        await githubJson(`https://api.github.com/repos/${repoPath}/git/refs/heads/${encodeURIComponent(branch)}`, token, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                sha: commitSha,
+                force: false
+            })
+        });
+    }
+
+    function normalizeBase64(content) {
+        return String(content || '').replace(/\s+/g, '');
+    }
+
+    async function fetchRepoFileBase64(repoPath, ref, file, token) {
+        const json = await githubJson(`https://api.github.com/repos/${repoPath}/contents/${encodeURIComponent(file)}?ref=${encodeURIComponent(ref)}`, token);
+        return normalizeBase64(json?.content || '');
+    }
+
+    async function verifyDeployedFiles(repoPath, commitSha, token, expectedFiles) {
+        const files = ['index.html', 'script.js', 'styles.css', 'auto-embed.js'];
+
+        for (let attempt = 0; attempt < 6; attempt += 1) {
+            let allMatched = true;
+
+            for (const file of files) {
+                const [expectedBase64, repoBase64] = await Promise.all([
+                    Promise.resolve(normalizeBase64(expectedFiles[file] || '')),
+                    fetchRepoFileBase64(repoPath, commitSha, file, token)
+                ]);
+
+                if (!expectedBase64 || expectedBase64 !== repoBase64) {
+                    allMatched = false;
+                    break;
+                }
+            }
+
+            if (allMatched) return;
+            await new Promise((resolve) => setTimeout(resolve, 1200));
+        }
+
+        throw new Error('Live verification failed after retrying raw GitHub');
     }
 
     async function deployToGithub() {
@@ -765,47 +917,52 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const files = getDeployFiles();
-        let completed = 0;
 
-        for (const file of files) {
-            const progress = Math.round((completed / files.length) * 100);
-            showDeployStatus(`Uploading ${file}...`, progress, 'info');
-            try {
+        try {
+            showDeployStatus(`Preparing ${branch}...`, 5, 'info');
+            const parentSha = await fetchBranchHead(repoPath, branch, token);
+            const parentCommit = await fetchCommit(repoPath, parentSha, token);
+            const treeEntries = [];
+            const expectedFiles = {};
+
+            for (let i = 0; i < files.length; i += 1) {
+                const file = files[i];
+                const progress = 10 + Math.round((i / Math.max(1, files.length)) * 45);
+                showDeployStatus(`Staging ${file}...`, progress, 'info');
                 const encoded = await fetchFileContentBase64(file);
-                const sha = await fetchSha(repoPath, branch, file, token);
-
-                const body = {
-                    message: `Deploy ${file}`,
-                    content: encoded,
-                    branch
-                };
-                if (sha) body.sha = sha;
-
-                const ghResp = await fetch(`https://api.github.com/repos/${repoPath}/contents/${file}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Accept': 'application/vnd.github+json',
-                        'Authorization': `Bearer ${token}`,
-                        'User-Agent': 'Cherry-Deploy',
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(body)
+                expectedFiles[file] = encoded;
+                const blobSha = await createBlob(repoPath, encoded, token);
+                treeEntries.push({
+                    path: file,
+                    mode: '100644',
+                    type: 'blob',
+                    sha: blobSha
                 });
-
-                if (!ghResp.ok) {
-                    const text = await ghResp.text();
-                    throw new Error(`GitHub ${ghResp.status}: ${text}`);
-                }
-            } catch (err) {
-                showDeployStatus(`Error deploying ${file}: ${err.message}`, progress, 'error');
-                setCredsStatus(`Deploy failed: ${err.message}`, 'error');
-                return;
             }
-            completed += 1;
+
+            showDeployStatus('Creating commit...', 60, 'info');
+            const commitMessage = `Deploy Cherry builder ${new Date().toISOString()}`;
+            const treeSha = await createTree(repoPath, parentCommit.tree.sha, treeEntries, token);
+            const commitSha = await createCommit(repoPath, commitMessage, treeSha, parentSha, token);
+
+            showDeployStatus(`Pushing ${commitSha.slice(0, 7)}...`, 75, 'info');
+            await updateBranchHead(repoPath, branch, commitSha, token);
+
+            showDeployStatus('Verifying live files...', 88, 'info');
+            await verifyDeployedFiles(repoPath, commitSha, token, expectedFiles);
+
+            const pinnedBase = `https://cdn.jsdelivr.net/gh/${repoPath}@${commitSha}`;
+            setActiveEmbedBases(pinnedBase, pinnedBase, commitSha);
+            updateEmbedCode();
+
+            showDeployStatus(`Deploy complete ${commitSha.slice(0, 7)}`, 100, 'success');
+            setCredsStatus(`Deployed and verified ${repoPath}@${commitSha.slice(0, 7)}. Embed code is now commit-pinned.`, 'success');
+        } catch (err) {
+            showDeployStatus(`Deploy failed: ${err.message}`, 100, 'error');
+            setCredsStatus(`Deploy failed: ${err.message}`, 'error');
+            return;
         }
 
-        showDeployStatus('Deploy complete', 100, 'success');
-        setCredsStatus(`Deploy complete: ${repoPath} updated on ${branch}.`, 'success');
         setTimeout(() => {
             if (deployStatusEl) deployStatusEl.remove();
             deployStatusEl = null;
@@ -846,13 +1003,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return encodeBytesToBase64(new TextEncoder().encode(text));
     }
 
-    function getCurrentDocumentHtml() {
-        const doctype = document.doctype
-            ? `<!DOCTYPE ${document.doctype.name}${document.doctype.publicId ? ` PUBLIC "${document.doctype.publicId}"` : ''}${!document.doctype.publicId && document.doctype.systemId ? ' SYSTEM' : ''}${document.doctype.systemId ? ` "${document.doctype.systemId}"` : ''}>\n`
-            : '<!DOCTYPE html>\n';
-        return `${doctype}${document.documentElement.outerHTML}`;
-    }
-
     function getEmbeddedDeployManifest() {
         const el = document.getElementById('deploy-manifest');
         if (!el?.textContent) return null;
@@ -864,10 +1014,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function fetchFileContentBase64(file) {
-        if (file === 'index.html') {
-            return encodeTextToBase64(getCurrentDocumentHtml());
-        }
-
         const embeddedManifest = getEmbeddedDeployManifest();
         if (embeddedManifest?.[file]) {
             return embeddedManifest[file];
@@ -1047,6 +1193,7 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.classList.toggle('active', btn.dataset.target === mode);
         });
 
+        updateEmbedCode();
         updateWebhookStatus(`Active: ${mode.toUpperCase()}`);
     }
 
