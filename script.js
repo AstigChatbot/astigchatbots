@@ -595,24 +595,67 @@ document.addEventListener('DOMContentLoaded', () => {
         widgetDrawer.setAttribute('aria-hidden', show ? 'false' : 'true');
     }
 
-    function updateEmbedDefaults() {
-        const ghBase = 'https://cdn.jsdelivr.net/gh/AstigChatbot/astigchatbots@main';
-        if (embedJsUrlInput && !embedJsUrlInput.value) {
-            embedJsUrlInput.value = `${ghBase}/auto-embed.js`;
+    function getStoredEmbedBase(key, fallback) {
+        return safeStorageGet(key, fallback) || fallback;
+    }
+
+    function getActiveEmbedRuntimeBase() {
+        return getStoredEmbedBase(STORAGE_KEYS.embedRuntimeBase, DEFAULT_EMBED_RUNTIME_BASE);
+    }
+
+    function getActiveEmbedAppBase() {
+        return getStoredEmbedBase(STORAGE_KEYS.embedAppBase, DEFAULT_EMBED_APP_BASE);
+    }
+
+    function setActiveEmbedBases(runtimeBase, appBase, commitSha = '') {
+        try {
+            if (runtimeBase) localStorage.setItem(STORAGE_KEYS.embedRuntimeBase, runtimeBase);
+            if (appBase) localStorage.setItem(STORAGE_KEYS.embedAppBase, appBase);
+            if (commitSha) {
+                localStorage.setItem(STORAGE_KEYS.deployCommit, commitSha);
+            } else {
+                localStorage.removeItem(STORAGE_KEYS.deployCommit);
+            }
+        } catch (_) {
+            // Ignore storage failures; the code block will still update for this session.
         }
-        if (embedCssUrlInput && !embedCssUrlInput.value) {
-            embedCssUrlInput.value = 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css';
+
+        if (embedJsUrlInput) {
+            embedJsUrlInput.value = `${runtimeBase || getActiveEmbedRuntimeBase()}/auto-embed.js`;
+        }
+        if (embedCssUrlInput) {
+            embedCssUrlInput.value = `${appBase || getActiveEmbedAppBase()}/index.html`;
         }
     }
 
+    function updateEmbedDefaults() {
+        setActiveEmbedBases(getActiveEmbedRuntimeBase(), getActiveEmbedAppBase());
+    }
+
     function buildEmbedCode() {
-        const jsUrl = (embedJsUrlInput?.value || '').trim() || 'https://cdn.jsdelivr.net/gh/AstigChatbot/astigchatbots@main/auto-embed.js';
-        const cssUrl = (embedCssUrlInput?.value || '').trim() || 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css';
+        const runtimeBase = ((embedJsUrlInput?.value || '').trim().replace(/\/auto-embed\.js$/i, '')) || getActiveEmbedRuntimeBase();
+        const appBase = ((embedCssUrlInput?.value || '').trim().replace(/\/index\.html$/i, '')) || getActiveEmbedAppBase();
+        const jsUrl = `${runtimeBase}/auto-embed.js`;
+        const appUrl = `${appBase}/index.html`;
         const webhook = currentWebhookUrl || WEBHOOK_URL_PROD;
-        const useDefaultCss = cssUrl === 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css';
-        return useDefaultCss
-            ? `<script src="${jsUrl}" data-webhook="${webhook}"></script>`
-            : `<script src="${jsUrl}" data-webhook="${webhook}" data-css="${cssUrl}"></script>`;
+        const iconUrl = (widgetIconInput?.value || safeStorageGet(STORAGE_KEYS.launcherIcon, '') || '').trim();
+        const shape = widgetShapeSelect?.value || safeStorageGet(STORAGE_KEYS.launcherShape, 'circle') || 'circle';
+        const anim = widgetAnimSelect?.value || safeStorageGet(STORAGE_KEYS.launcherAnim, 'none') || 'none';
+        const is3d = widget3dCheckbox?.checked ?? ((safeStorageGet(STORAGE_KEYS.launcher3d, 'false') || 'false') === 'true');
+        const attrs = [
+            `src="${jsUrl}"`,
+            `data-webhook="${webhook}"`,
+            `data-app-url="${appUrl}"`,
+            `data-icon-shape="${shape}"`,
+            `data-icon-anim="${anim}"`,
+            `data-icon-3d="${String(is3d)}"`
+        ];
+
+        if (iconUrl) {
+            attrs.splice(3, 0, `data-icon-url="${iconUrl}"`);
+        }
+
+        return `<script ${attrs.join(' ')}></script>`;
     }
 
     function updateEmbedCode() {
@@ -685,6 +728,7 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem(STORAGE_KEYS.launcherAnim, anim);
         localStorage.setItem(STORAGE_KEYS.launcher3d, String(is3d));
         applyLauncher(label, subtext, icon, shape, anim, is3d, iconSize);
+        updateEmbedCode();
         setWidgetStatus('Launcher saved.', 'success');
     }
 
