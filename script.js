@@ -65,8 +65,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const WEBHOOK_URL_TEST = 'https://n8n.srv1291312.hstgr.cloud/webhook-test/33042864-3282-4dd6-95ab-6ffa983a8196';
     const DEFAULT_GITHUB_REPO = 'AstigChatbot/astigchatbots';
     const DEFAULT_GITHUB_BRANCH = 'main';
-    const DEFAULT_EMBED_RUNTIME_BASE = 'https://cdn.jsdelivr.net/gh/AstigChatbot/astigchatbots@43f050b';
-    const DEFAULT_EMBED_APP_BASE = 'https://cdn.jsdelivr.net/gh/AstigChatbot/astigchatbots@97e7c59';
     let currentWebhookUrl = WEBHOOK_URL_PROD;
 
     const STORAGE_KEYS = {
@@ -83,20 +81,8 @@ document.addEventListener('DOMContentLoaded', () => {
         webhookProd: 'cherry.webhook.prod',
         webhookTest: 'cherry.webhook.test',
         webhookChat: 'cherry.webhook.chat',
-        webhookActive: 'cherry.webhook.active',
-        embedRuntimeBase: 'cherry.embed.runtimeBase',
-        embedAppBase: 'cherry.embed.appBase',
-        deployCommit: 'cherry.deploy.commit'
+        webhookActive: 'cherry.webhook.active'
     };
-
-    function safeStorageGet(key, fallback = '') {
-        try {
-            const value = localStorage.getItem(key);
-            return value ?? fallback;
-        } catch (_) {
-            return fallback;
-        }
-    }
 
     // State for interactive actions
     let isAskingForEmail = false;
@@ -609,67 +595,24 @@ document.addEventListener('DOMContentLoaded', () => {
         widgetDrawer.setAttribute('aria-hidden', show ? 'false' : 'true');
     }
 
-    function getStoredEmbedBase(key, fallback) {
-        return safeStorageGet(key, fallback) || fallback;
-    }
-
-    function getActiveEmbedRuntimeBase() {
-        return getStoredEmbedBase(STORAGE_KEYS.embedRuntimeBase, DEFAULT_EMBED_RUNTIME_BASE);
-    }
-
-    function getActiveEmbedAppBase() {
-        return getStoredEmbedBase(STORAGE_KEYS.embedAppBase, DEFAULT_EMBED_APP_BASE);
-    }
-
-    function setActiveEmbedBases(runtimeBase, appBase, commitSha = '') {
-        try {
-            if (runtimeBase) localStorage.setItem(STORAGE_KEYS.embedRuntimeBase, runtimeBase);
-            if (appBase) localStorage.setItem(STORAGE_KEYS.embedAppBase, appBase);
-            if (commitSha) {
-                localStorage.setItem(STORAGE_KEYS.deployCommit, commitSha);
-            } else {
-                localStorage.removeItem(STORAGE_KEYS.deployCommit);
-            }
-        } catch (_) {
-            // Ignore storage failures; the code block will still update for this session.
-        }
-
-        if (embedJsUrlInput) {
-            embedJsUrlInput.value = `${runtimeBase || getActiveEmbedRuntimeBase()}/auto-embed.js`;
-        }
-        if (embedCssUrlInput) {
-            embedCssUrlInput.value = `${appBase || getActiveEmbedAppBase()}/index.html`;
-        }
-    }
-
     function updateEmbedDefaults() {
-        setActiveEmbedBases(getActiveEmbedRuntimeBase(), getActiveEmbedAppBase());
+        const ghBase = 'https://cdn.jsdelivr.net/gh/AstigChatbot/astigchatbots@main';
+        if (embedJsUrlInput && !embedJsUrlInput.value) {
+            embedJsUrlInput.value = `${ghBase}/auto-embed.js`;
+        }
+        if (embedCssUrlInput && !embedCssUrlInput.value) {
+            embedCssUrlInput.value = 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css';
+        }
     }
 
     function buildEmbedCode() {
-        const runtimeBase = ((embedJsUrlInput?.value || '').trim().replace(/\/auto-embed\.js$/i, '')) || getActiveEmbedRuntimeBase();
-        const appBase = ((embedCssUrlInput?.value || '').trim().replace(/\/index\.html$/i, '')) || getActiveEmbedAppBase();
-        const jsUrl = `${runtimeBase}/auto-embed.js`;
-        const appUrl = `${appBase}/index.html`;
+        const jsUrl = (embedJsUrlInput?.value || '').trim() || 'https://cdn.jsdelivr.net/gh/AstigChatbot/astigchatbots@main/auto-embed.js';
+        const cssUrl = (embedCssUrlInput?.value || '').trim() || 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css';
         const webhook = currentWebhookUrl || WEBHOOK_URL_PROD;
-        const iconUrl = (widgetIconInput?.value || safeStorageGet(STORAGE_KEYS.launcherIcon, '') || '').trim();
-        const shape = widgetShapeSelect?.value || safeStorageGet(STORAGE_KEYS.launcherShape, 'circle') || 'circle';
-        const anim = widgetAnimSelect?.value || safeStorageGet(STORAGE_KEYS.launcherAnim, 'none') || 'none';
-        const is3d = widget3dCheckbox?.checked ?? ((safeStorageGet(STORAGE_KEYS.launcher3d, 'false') || 'false') === 'true');
-        const attrs = [
-            `src="${jsUrl}"`,
-            `data-webhook="${webhook}"`,
-            `data-app-url="${appUrl}"`,
-            `data-icon-shape="${shape}"`,
-            `data-icon-anim="${anim}"`,
-            `data-icon-3d="${String(is3d)}"`
-        ];
-
-        if (iconUrl) {
-            attrs.splice(3, 0, `data-icon-url="${iconUrl}"`);
-        }
-
-        return `<script ${attrs.join(' ')}></script>`;
+        const useDefaultCss = cssUrl === 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css';
+        return useDefaultCss
+            ? `<script src="${jsUrl}" data-webhook="${webhook}"></script>`
+            : `<script src="${jsUrl}" data-webhook="${webhook}" data-css="${cssUrl}"></script>`;
     }
 
     function updateEmbedCode() {
@@ -742,7 +685,6 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem(STORAGE_KEYS.launcherAnim, anim);
         localStorage.setItem(STORAGE_KEYS.launcher3d, String(is3d));
         applyLauncher(label, subtext, icon, shape, anim, is3d, iconSize);
-        updateEmbedCode();
         setWidgetStatus('Launcher saved.', 'success');
     }
 
@@ -904,6 +846,13 @@ document.addEventListener('DOMContentLoaded', () => {
         return encodeBytesToBase64(new TextEncoder().encode(text));
     }
 
+    function getCurrentDocumentHtml() {
+        const doctype = document.doctype
+            ? `<!DOCTYPE ${document.doctype.name}${document.doctype.publicId ? ` PUBLIC "${document.doctype.publicId}"` : ''}${!document.doctype.publicId && document.doctype.systemId ? ' SYSTEM' : ''}${document.doctype.systemId ? ` "${document.doctype.systemId}"` : ''}>\n`
+            : '<!DOCTYPE html>\n';
+        return `${doctype}${document.documentElement.outerHTML}`;
+    }
+
     function getEmbeddedDeployManifest() {
         const el = document.getElementById('deploy-manifest');
         if (!el?.textContent) return null;
@@ -915,6 +864,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function fetchFileContentBase64(file) {
+        if (file === 'index.html') {
+            return encodeTextToBase64(getCurrentDocumentHtml());
+        }
+
         const embeddedManifest = getEmbeddedDeployManifest();
         if (embeddedManifest?.[file]) {
             return embeddedManifest[file];
