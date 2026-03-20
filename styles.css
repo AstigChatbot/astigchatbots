@@ -624,13 +624,16 @@ body.embed-mode .main-container {
     width: 100%;
     max-width: none;
     height: 100dvh;
-    padding: 14px;
+    padding: 0;
 }
 
 body.embed-mode .form-interface {
     width: 100%;
     max-width: none;
     height: 100%;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
 }
 
 body.embed-widget-mode .chat-launcher {

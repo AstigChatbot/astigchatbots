@@ -108,9 +108,9 @@
     panel.style.bottom = '84px';
     panel.style.width = 'min(660px, calc(100vw - 32px))';
     panel.style.height = 'min(90vh, 820px)';
-    panel.style.borderRadius = '24px';
-    panel.style.overflow = 'hidden';
-    panel.style.boxShadow = '0 18px 48px rgba(0, 0, 0, 0.35)';
+    panel.style.borderRadius = '0';
+    panel.style.overflow = 'visible';
+    panel.style.boxShadow = 'none';
     panel.style.background = 'transparent';
 
     const iframe = document.createElement('iframe');

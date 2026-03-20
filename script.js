@@ -713,6 +713,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let deployStatusEl = null;
 
     function getDeployStatusEl() {
+        if (EMBED_MODE) return null;
         if (deployStatusEl) return deployStatusEl;
         deployStatusEl = document.createElement('div');
         deployStatusEl.id = 'deploy-status-banner';
@@ -735,6 +736,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function showDeployStatus(message, percent = 0, type = 'info') {
         const el = getDeployStatusEl();
+        if (!el) return;
         const color = type === 'error' ? '#f43f5e' : type === 'success' ? '#22c55e' : '#38bdf8';
         el.style.border = `1px solid ${color}55`;
         el.style.boxShadow = `0 12px 28px ${color}33`;
