@@ -614,11 +614,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const launcherAnim = (localStorage.getItem(STORAGE_KEYS.launcherAnim) || 'none').trim() || 'none';
         const launcher3d = (localStorage.getItem(STORAGE_KEYS.launcher3d) || 'false') === 'true';
         let appUrl = `${DEFAULT_EMBED_APP_BASE}/index.html`;
-        try {
-            if (!jsUrl.includes('@main')) {
-                appUrl = new URL('index.html', jsUrl).href;
-            }
-        } catch (_) { /* ignore */ }
         const attrs = [
             `src="${jsUrl}"`,
             `data-webhook="${webhook}"`,
@@ -922,11 +917,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const launcherAnim = (localStorage.getItem(STORAGE_KEYS.launcherAnim) || 'none').trim() || 'none';
         const launcher3d = (localStorage.getItem(STORAGE_KEYS.launcher3d) || 'false') === 'true';
         let appUrl = `${DEFAULT_EMBED_APP_BASE}/index.html`;
-        try {
-            if (!jsUrl.includes('@main')) {
-                appUrl = new URL('index.html', jsUrl).href;
-            }
-        } catch (_) { /* ignore */ }
         const attrs = [
             `s.src = ${JSON.stringify(jsUrl)};`,
             `s.dataset.webhook = ${JSON.stringify(webhook)};`,
