@@ -66,6 +66,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const DEFAULT_GITHUB_REPO = 'AstigChatbot/astigchatbots';
     const DEFAULT_GITHUB_BRANCH = 'main';
     let currentWebhookUrl = WEBHOOK_URL_PROD;
+    const runtimeParams = new URLSearchParams(window.location.search);
+    const runtimeConfig = window.__CHERRY_RUNTIME_CONFIG || {};
+    const EMBED_MODE = runtimeParams.get('embed') === '1' || runtimeConfig.embed === true;
+    const EMBED_WIDGET_MODE = runtimeParams.get('widget') === '1' || runtimeConfig.widget === true;
+    const RUNTIME_WEBHOOK = (runtimeParams.get('webhook') || runtimeConfig.webhook || '').trim();
+    const RUNTIME_MODE = (runtimeParams.get('mode') || runtimeConfig.mode || '').trim();
+
+    if (EMBED_MODE) {
+        document.body.classList.add('embed-mode');
+    }
+    if (EMBED_WIDGET_MODE) {
+        document.body.classList.add('embed-widget-mode');
+    }
 
     const STORAGE_KEYS = {
         repo: 'cherry.github.repo',

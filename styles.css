@@ -614,6 +614,29 @@ body {
     position: relative;
 }
 
+body.embed-mode .app-logo,
+body.embed-mode .floating-menu,
+body.embed-mode .left-menu {
+    display: none !important;
+}
+
+body.embed-mode .main-container {
+    width: 100%;
+    max-width: none;
+    height: 100dvh;
+    padding: 14px;
+}
+
+body.embed-mode .form-interface {
+    width: 100%;
+    max-width: none;
+    height: 100%;
+}
+
+body.embed-widget-mode .chat-launcher {
+    display: none !important;
+}
+
 /* Character Section (Deprecated/Removed from HTML flow, styles repurposed) */
 .character-section {
     display: none;
