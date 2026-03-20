@@ -65,7 +65,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const WEBHOOK_URL_TEST = 'https://n8n.srv1291312.hstgr.cloud/webhook-test/33042864-3282-4dd6-95ab-6ffa983a8196';
     const DEFAULT_GITHUB_REPO = 'AstigChatbot/astigchatbots';
     const DEFAULT_GITHUB_BRANCH = 'main';
-    const DEFAULT_EMBED_CDN_BASE = 'https://cdn.jsdelivr.net/gh/AstigChatbot/astigchatbots@ecc56b6';
+    const DEFAULT_EMBED_RUNTIME_BASE = 'https://cdn.jsdelivr.net/gh/AstigChatbot/astigchatbots@afea96d';
+    const DEFAULT_EMBED_APP_BASE = 'https://cdn.jsdelivr.net/gh/AstigChatbot/astigchatbots@ecc56b6';
     let currentWebhookUrl = WEBHOOK_URL_PROD;
 
     const STORAGE_KEYS = {
@@ -598,7 +599,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateEmbedDefaults() {
         if (embedJsUrlInput && !embedJsUrlInput.value) {
-            embedJsUrlInput.value = `${DEFAULT_EMBED_CDN_BASE}/auto-embed.js`;
+            embedJsUrlInput.value = `${DEFAULT_EMBED_RUNTIME_BASE}/auto-embed.js`;
         }
         if (embedCssUrlInput && !embedCssUrlInput.value) {
             embedCssUrlInput.value = 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css';
@@ -606,15 +607,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function buildEmbedCode() {
-        const jsUrl = (embedJsUrlInput?.value || '').trim() || `${DEFAULT_EMBED_CDN_BASE}/auto-embed.js`;
+        const jsUrl = (embedJsUrlInput?.value || '').trim() || `${DEFAULT_EMBED_RUNTIME_BASE}/auto-embed.js`;
         const webhook = currentWebhookUrl || WEBHOOK_URL_PROD;
         const launcherIcon = (localStorage.getItem(STORAGE_KEYS.launcherIcon) || '').trim();
         const launcherShape = (localStorage.getItem(STORAGE_KEYS.launcherShape) || 'circle').trim() || 'circle';
         const launcherAnim = (localStorage.getItem(STORAGE_KEYS.launcherAnim) || 'none').trim() || 'none';
         const launcher3d = (localStorage.getItem(STORAGE_KEYS.launcher3d) || 'false') === 'true';
-        let appUrl = `${DEFAULT_EMBED_CDN_BASE}/index.html`;
+        let appUrl = `${DEFAULT_EMBED_APP_BASE}/index.html`;
         try {
-            appUrl = new URL('index.html', jsUrl).href;
+            if (!jsUrl.includes('@main')) {
+                appUrl = new URL('index.html', jsUrl).href;
+            }
         } catch (_) { /* ignore */ }
         const attrs = [
             `src="${jsUrl}"`,
@@ -912,15 +915,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function downloadEmbedJs() {
-        const jsUrl = (embedJsUrlInput?.value || '').trim() || `${DEFAULT_EMBED_CDN_BASE}/auto-embed.js`;
+        const jsUrl = (embedJsUrlInput?.value || '').trim() || `${DEFAULT_EMBED_RUNTIME_BASE}/auto-embed.js`;
         const webhook = currentWebhookUrl || WEBHOOK_URL_PROD;
         const launcherIcon = (localStorage.getItem(STORAGE_KEYS.launcherIcon) || '').trim();
         const launcherShape = (localStorage.getItem(STORAGE_KEYS.launcherShape) || 'circle').trim() || 'circle';
         const launcherAnim = (localStorage.getItem(STORAGE_KEYS.launcherAnim) || 'none').trim() || 'none';
         const launcher3d = (localStorage.getItem(STORAGE_KEYS.launcher3d) || 'false') === 'true';
-        let appUrl = `${DEFAULT_EMBED_CDN_BASE}/index.html`;
+        let appUrl = `${DEFAULT_EMBED_APP_BASE}/index.html`;
         try {
-            appUrl = new URL('index.html', jsUrl).href;
+            if (!jsUrl.includes('@main')) {
+                appUrl = new URL('index.html', jsUrl).href;
+            }
         } catch (_) { /* ignore */ }
         const attrs = [
             `s.src = ${JSON.stringify(jsUrl)};`,
