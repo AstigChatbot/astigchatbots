@@ -11,6 +11,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const embedDrawer = document.getElementById('embed-drawer');
     const drawerOverlay = document.getElementById('drawer-overlay');
     const drawerClose = document.getElementById('drawer-close');
+    const deployBtn = document.querySelector('.floating-menu .menu-btn.deploy');
+    const deployCredsBtn = document.getElementById('deploy-github-btn');
+    const widgetBtn = document.querySelector('.left-menu .menu-btn.widget');
+    const widgetDrawer = document.getElementById('widget-drawer');
+    const widgetOverlay = document.getElementById('widget-overlay');
+    const widgetClose = document.getElementById('widget-close');
+    const widgetLabelInput = document.getElementById('widget-label');
+    const widgetSubtextInput = document.getElementById('widget-subtext');
+    const widgetIconInput = document.getElementById('widget-icon-url');
+    const widgetIconSizeInput = document.getElementById('widget-icon-size');
+    const widgetShapeSelect = document.getElementById('widget-shape');
+    const widgetAnimSelect = document.getElementById('widget-anim');
+    const widget3dCheckbox = document.getElementById('widget-3d');
+    const saveWidgetBtn = document.getElementById('save-widget-settings');
+    const widgetStatus = document.getElementById('widget-status');
+    const launcher = document.getElementById('chat-launcher');
+    const launcherLabel = document.getElementById('chat-launcher-label');
+    const launcherSubtext = document.getElementById('chat-launcher-subtext');
+    const launcherIcon = document.getElementById('chat-launcher-icon');
     const credsBtn = document.querySelector('.left-menu .menu-btn.credentials');
     const credsDrawer = document.getElementById('creds-drawer');
     const credsOverlay = document.getElementById('creds-overlay');
@@ -23,6 +42,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const clearGithubTokenBtn = document.getElementById('clear-github-token');
     const credsStatus = document.getElementById('creds-status');
     const testGithubAccessBtn = document.getElementById('test-github-access');
+    const webhookBtn = document.querySelector('.floating-menu .menu-btn.webhook');
+    const webhookDrawer = document.getElementById('webhook-drawer');
+    const webhookOverlay = document.getElementById('webhook-overlay');
+    const webhookClose = document.getElementById('webhook-close');
+    const webhookProdInput = document.getElementById('webhook-prod');
+    const webhookTestInput = document.getElementById('webhook-test');
+    const webhookChatInput = document.getElementById('webhook-chat');
+    const webhookStatus = document.getElementById('webhook-status');
+    const webhookModeButtons = document.querySelectorAll('.segment[data-target]');
+    const saveWebhookSettingsBtn = document.getElementById('save-webhook-settings');
     const embedJsUrlInput = document.getElementById('embed-js-url');
     const embedCssUrlInput = document.getElementById('embed-css-url');
     const embedContainerIdInput = document.getElementById('embed-container-id');
@@ -34,7 +63,26 @@ document.addEventListener('DOMContentLoaded', () => {
     // Webhook URLs
     const WEBHOOK_URL_PROD = 'https://n8n.srv1291312.hstgr.cloud/webhook/33042864-3282-4dd6-95ab-6ffa983a8196';
     const WEBHOOK_URL_TEST = 'https://n8n.srv1291312.hstgr.cloud/webhook-test/33042864-3282-4dd6-95ab-6ffa983a8196';
+    const DEFAULT_GITHUB_REPO = 'AstigChatbot/astigchatbots';
+    const DEFAULT_GITHUB_BRANCH = 'main';
     let currentWebhookUrl = WEBHOOK_URL_PROD;
+
+    const STORAGE_KEYS = {
+        repo: 'cherry.github.repo',
+        branch: 'cherry.github.branch',
+        token: 'cherry.github.token',
+        launcherLabel: 'cherry.launcher.label',
+        launcherSubtext: 'cherry.launcher.subtext',
+        launcherIcon: 'cherry.launcher.icon',
+        launcherIconSize: 'cherry.launcher.iconSize',
+        launcherShape: 'cherry.launcher.shape',
+        launcherAnim: 'cherry.launcher.anim',
+        launcher3d: 'cherry.launcher.3d',
+        webhookProd: 'cherry.webhook.prod',
+        webhookTest: 'cherry.webhook.test',
+        webhookChat: 'cherry.webhook.chat',
+        webhookActive: 'cherry.webhook.active'
+    };
 
     // State for interactive actions
     let isAskingForEmail = false;
@@ -55,6 +103,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (refreshBtn) {
         refreshBtn.addEventListener('click', hardRefresh);
+    }
+
+    if (deployBtn) {
+        deployBtn.addEventListener('click', deployToGithub);
+    }
+
+    if (deployCredsBtn) {
+        deployCredsBtn.addEventListener('click', deployToGithub);
+    }
+
+    if (widgetBtn) {
+        widgetBtn.addEventListener('click', () => openWidgetDrawer(true));
+    }
+    if (widgetOverlay) {
+        widgetOverlay.addEventListener('click', () => openWidgetDrawer(false));
+    }
+    if (widgetClose) {
+        widgetClose.addEventListener('click', () => openWidgetDrawer(false));
+    }
+    if (saveWidgetBtn) {
+        saveWidgetBtn.addEventListener('click', saveWidgetSettings);
+    }
+
+    if (launcher) {
+        launcher.addEventListener('click', () => openWidgetDrawer(true));
     }
 
     if (embedBtn) {
@@ -97,10 +170,31 @@ document.addEventListener('DOMContentLoaded', () => {
         downloadEmbedCssBtn.addEventListener('click', downloadEmbedCss);
     }
 
+    if (webhookBtn) {
+        webhookBtn.addEventListener('click', () => openWebhookDrawer(true));
+    }
+
+    if (webhookOverlay) {
+        webhookOverlay.addEventListener('click', () => openWebhookDrawer(false));
+    }
+
+    if (webhookClose) {
+        webhookClose.addEventListener('click', () => openWebhookDrawer(false));
+    }
+
+    if (saveWebhookSettingsBtn) {
+        saveWebhookSettingsBtn.addEventListener('click', saveWebhookSettings);
+    }
+
+    webhookModeButtons.forEach(btn => {
+        btn.addEventListener('click', () => setActiveWebhook(btn.dataset.target));
+    });
+
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             if (embedDrawer?.classList.contains('open')) openEmbedDrawer(false);
             if (credsDrawer?.classList.contains('open')) openCredsDrawer(false);
+            if (webhookDrawer?.classList.contains('open')) openWebhookDrawer(false);
         }
     });
 
@@ -169,6 +263,8 @@ document.addEventListener('DOMContentLoaded', () => {
     updateEmbedDefaults();
     updateEmbedCode();
     hydrateGithubSettings();
+    hydrateWebhookSettings();
+    hydrateWidgetSettings();
 
 
 
@@ -485,26 +581,304 @@ document.addEventListener('DOMContentLoaded', () => {
         credsDrawer.setAttribute('aria-hidden', show ? 'false' : 'true');
     }
 
+    function openWebhookDrawer(show) {
+        if (!webhookDrawer || !webhookOverlay) return;
+        webhookDrawer.classList.toggle('open', show);
+        webhookOverlay.classList.toggle('show', show);
+        webhookDrawer.setAttribute('aria-hidden', show ? 'false' : 'true');
+    }
+
+    function openWidgetDrawer(show) {
+        if (!widgetDrawer || !widgetOverlay) return;
+        widgetDrawer.classList.toggle('open', show);
+        widgetOverlay.classList.toggle('show', show);
+        widgetDrawer.setAttribute('aria-hidden', show ? 'false' : 'true');
+    }
+
     function updateEmbedDefaults() {
-        const origin = window.location.origin;
+        const ghBase = 'https://cdn.jsdelivr.net/gh/AstigChatbot/astigchatbots@main';
         if (embedJsUrlInput && !embedJsUrlInput.value) {
-            embedJsUrlInput.value = `${origin}/cherry-embed.js`;
+            embedJsUrlInput.value = `${ghBase}/auto-embed.js`;
         }
         if (embedCssUrlInput && !embedCssUrlInput.value) {
-            embedCssUrlInput.value = `${origin}/cherry-embed.css`;
+            embedCssUrlInput.value = 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css';
         }
     }
 
     function buildEmbedCode() {
-        const jsUrl = (embedJsUrlInput?.value || '').trim() || `${window.location.origin}/cherry-embed.js`;
-        const cssUrl = (embedCssUrlInput?.value || '').trim() || `${window.location.origin}/cherry-embed.css`;
-        const containerId = (embedContainerIdInput?.value || 'cherry-embed').trim() || 'cherry-embed';
-        return `<div id=\"${containerId}\"></div>\n<link rel=\"stylesheet\" href=\"${cssUrl}\">\n<script src=\"${jsUrl}\" data-target=\"${containerId}\"></script>`;
+        const jsUrl = (embedJsUrlInput?.value || '').trim() || 'https://cdn.jsdelivr.net/gh/AstigChatbot/astigchatbots@main/auto-embed.js';
+        const cssUrl = (embedCssUrlInput?.value || '').trim() || 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css';
+        const webhook = currentWebhookUrl || WEBHOOK_URL_PROD;
+        const useDefaultCss = cssUrl === 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css';
+        return useDefaultCss
+            ? `<script src="${jsUrl}" data-webhook="${webhook}"></script>`
+            : `<script src="${jsUrl}" data-webhook="${webhook}" data-css="${cssUrl}"></script>`;
     }
 
     function updateEmbedCode() {
         if (!embedCodeBlock) return;
         embedCodeBlock.textContent = buildEmbedCode();
+    }
+
+    // -----------------------------
+    // Widget settings
+    // -----------------------------
+    function applyLauncher(label, subtext, iconUrl, shape, anim, is3d, iconSize) {
+        const lbl = label || 'Chat with Cherry';
+        const sub = subtext || 'We typically reply in minutes';
+        const shapeClass = shape || 'circle';
+        const animClass = anim || 'none';
+        const size = parseInt(iconSize, 10) || 26;
+        if (launcher) {
+            launcher.setAttribute('aria-label', lbl);
+            launcher.title = `${lbl} — ${sub}`;
+            launcher.classList.remove('circle', 'rounded', 'square', 'anim-pulse', 'anim-float', 'chat-launcher--3d');
+            launcher.classList.add(shapeClass);
+            if (animClass === 'pulse') launcher.classList.add('anim-pulse');
+            if (animClass === 'float') launcher.classList.add('anim-float');
+            if (is3d) launcher.classList.add('chat-launcher--3d');
+        }
+        if (launcherLabel) launcherLabel.textContent = lbl;
+        if (launcherSubtext) launcherSubtext.textContent = sub;
+        if (launcherIcon) {
+            if (iconUrl) {
+                launcherIcon.style.backgroundImage = `url('${iconUrl}')`;
+            } else {
+                launcherIcon.style.backgroundImage = '';
+            }
+            launcherIcon.style.width = `${size}px`;
+            launcherIcon.style.height = `${size}px`;
+        }
+    }
+
+    function hydrateWidgetSettings() {
+        const label = localStorage.getItem(STORAGE_KEYS.launcherLabel) || 'Chat with Cherry';
+        const subtext = localStorage.getItem(STORAGE_KEYS.launcherSubtext) || 'We typically reply in minutes';
+        const icon = localStorage.getItem(STORAGE_KEYS.launcherIcon) || '';
+        const iconSize = localStorage.getItem(STORAGE_KEYS.launcherIconSize) || '26';
+        const shape = localStorage.getItem(STORAGE_KEYS.launcherShape) || 'circle';
+        const anim = localStorage.getItem(STORAGE_KEYS.launcherAnim) || 'none';
+        const is3d = (localStorage.getItem(STORAGE_KEYS.launcher3d) || 'false') === 'true';
+        if (widgetLabelInput) widgetLabelInput.value = label;
+        if (widgetSubtextInput) widgetSubtextInput.value = subtext;
+        if (widgetIconInput) widgetIconInput.value = icon;
+        if (widgetIconSizeInput) widgetIconSizeInput.value = iconSize;
+        if (widgetShapeSelect) widgetShapeSelect.value = shape;
+        if (widgetAnimSelect) widgetAnimSelect.value = anim;
+        if (widget3dCheckbox) widget3dCheckbox.checked = is3d;
+        applyLauncher(label, subtext, icon, shape, anim, is3d, iconSize);
+    }
+
+    function saveWidgetSettings() {
+        const label = (widgetLabelInput?.value || 'Chat with Cherry').trim() || 'Chat with Cherry';
+        const subtext = (widgetSubtextInput?.value || 'We typically reply in minutes').trim() || 'We typically reply in minutes';
+        const icon = (widgetIconInput?.value || '').trim();
+        const iconSize = (widgetIconSizeInput?.value || '26').trim() || '26';
+        const shape = widgetShapeSelect?.value || 'circle';
+        const anim = widgetAnimSelect?.value || 'none';
+        const is3d = !!widget3dCheckbox?.checked;
+        localStorage.setItem(STORAGE_KEYS.launcherLabel, label);
+        localStorage.setItem(STORAGE_KEYS.launcherSubtext, subtext);
+        localStorage.setItem(STORAGE_KEYS.launcherIcon, icon);
+        localStorage.setItem(STORAGE_KEYS.launcherIconSize, iconSize);
+        localStorage.setItem(STORAGE_KEYS.launcherShape, shape);
+        localStorage.setItem(STORAGE_KEYS.launcherAnim, anim);
+        localStorage.setItem(STORAGE_KEYS.launcher3d, String(is3d));
+        applyLauncher(label, subtext, icon, shape, anim, is3d, iconSize);
+        setWidgetStatus('Launcher saved.', 'success');
+    }
+
+    function setWidgetStatus(text, type = 'success') {
+        if (!widgetStatus) return;
+        widgetStatus.textContent = text;
+        widgetStatus.style.color = type === 'error' ? '#f87171' : '#a5f3fc';
+    }
+
+    // -----------------------------
+    // Deploy to GitHub
+    // -----------------------------
+    let deployStatusEl = null;
+
+    function getDeployStatusEl() {
+        if (deployStatusEl) return deployStatusEl;
+        deployStatusEl = document.createElement('div');
+        deployStatusEl.id = 'deploy-status-banner';
+        Object.assign(deployStatusEl.style, {
+            position: 'fixed',
+            top: '14px',
+            right: '14px',
+            padding: '10px 14px',
+            borderRadius: '10px',
+            fontFamily: 'var(--font-family, system-ui, sans-serif)',
+            fontSize: '0.9rem',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.25)',
+            zIndex: '120',
+            background: 'rgba(24, 24, 27, 0.92)',
+            color: '#f8fafc'
+        });
+        document.body.appendChild(deployStatusEl);
+        return deployStatusEl;
+    }
+
+    function showDeployStatus(message, percent = 0, type = 'info') {
+        const el = getDeployStatusEl();
+        const color = type === 'error' ? '#f43f5e' : type === 'success' ? '#22c55e' : '#38bdf8';
+        el.style.border = `1px solid ${color}55`;
+        el.style.boxShadow = `0 12px 28px ${color}33`;
+        el.innerHTML = `<strong style="color:${color}">${Math.min(100, Math.max(0, percent))}%</strong> &nbsp; ${message}`;
+    }
+
+    async function fetchSha(repoPath, branch, file, token) {
+        try {
+            const resp = await fetch(`https://api.github.com/repos/${repoPath}/contents/${file}?ref=${encodeURIComponent(branch)}`, {
+                headers: {
+                    'Accept': 'application/vnd.github+json',
+                    'Authorization': `Bearer ${token}`,
+                    'User-Agent': 'Cherry-Deploy'
+                }
+            });
+            if (resp.ok) {
+                const json = await resp.json();
+                return json.sha;
+            }
+        } catch (_) { /* ignore */ }
+        return null;
+    }
+
+    async function deployToGithub() {
+        const repoPath = parseRepoPath(githubUrlInput?.value || localStorage.getItem(STORAGE_KEYS.repo) || DEFAULT_GITHUB_REPO);
+        if (!repoPath) {
+            openCredsDrawer(true);
+            setCredsStatus('Repository is missing. It has been reset to the default project repo.', 'error');
+            if (githubUrlInput) githubUrlInput.value = DEFAULT_GITHUB_REPO;
+            return;
+        }
+        const branch = (githubBranchInput?.value || localStorage.getItem(STORAGE_KEYS.branch) || DEFAULT_GITHUB_BRANCH).trim() || DEFAULT_GITHUB_BRANCH;
+        const token = (githubTokenInput?.value || localStorage.getItem(STORAGE_KEYS.token) || '').trim();
+        if (!token) {
+            openCredsDrawer(true);
+            showDeployStatus('Paste your GitHub token once, then press Deploy again.', 0, 'error');
+            setCredsStatus('Paste a GitHub token with repository write access, then press Deploy to GitHub.', 'error');
+            if (githubUrlInput && !githubUrlInput.value.trim()) githubUrlInput.value = repoPath;
+            if (githubBranchInput && !githubBranchInput.value.trim()) githubBranchInput.value = branch;
+            return;
+        }
+
+        const files = getDeployFiles();
+        let completed = 0;
+
+        for (const file of files) {
+            const progress = Math.round((completed / files.length) * 100);
+            showDeployStatus(`Uploading ${file}...`, progress, 'info');
+            try {
+                const encoded = await fetchFileContentBase64(file);
+                const sha = await fetchSha(repoPath, branch, file, token);
+
+                const body = {
+                    message: `Deploy ${file}`,
+                    content: encoded,
+                    branch
+                };
+                if (sha) body.sha = sha;
+
+                const ghResp = await fetch(`https://api.github.com/repos/${repoPath}/contents/${file}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Accept': 'application/vnd.github+json',
+                        'Authorization': `Bearer ${token}`,
+                        'User-Agent': 'Cherry-Deploy',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(body)
+                });
+
+                if (!ghResp.ok) {
+                    const text = await ghResp.text();
+                    throw new Error(`GitHub ${ghResp.status}: ${text}`);
+                }
+            } catch (err) {
+                showDeployStatus(`Error deploying ${file}: ${err.message}`, progress, 'error');
+                setCredsStatus(`Deploy failed: ${err.message}`, 'error');
+                return;
+            }
+            completed += 1;
+        }
+
+        showDeployStatus('Deploy complete', 100, 'success');
+        setCredsStatus(`Deploy complete: ${repoPath} updated on ${branch}.`, 'success');
+        setTimeout(() => {
+            if (deployStatusEl) deployStatusEl.remove();
+            deployStatusEl = null;
+        }, 3200);
+    }
+
+    function getDeployFiles() {
+        return [
+            'index.html',
+            'styles.css',
+            'script.js',
+            'embed.js',
+            'auto-embed.js',
+            'assets/astig_logo.png',
+            'assets/character_standin.jpg',
+            'assets/character_standin.png',
+            'assets/cherry-logo.png',
+            'assets/couple_photo.png',
+            'assets/favicon.png',
+            'assets/floral_motif.png',
+            'assets/gallery_1.png',
+            'assets/gallery_2.png',
+            'assets/gallery_3.png',
+            'assets/hero_background.png'
+        ];
+    }
+
+    function encodeBytesToBase64(bytes) {
+        let binary = '';
+        const chunkSize = 0x8000;
+        for (let i = 0; i < bytes.length; i += chunkSize) {
+            binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+        }
+        return btoa(binary);
+    }
+
+    function encodeTextToBase64(text) {
+        return encodeBytesToBase64(new TextEncoder().encode(text));
+    }
+
+    function getCurrentDocumentHtml() {
+        const doctype = document.doctype
+            ? `<!DOCTYPE ${document.doctype.name}${document.doctype.publicId ? ` PUBLIC "${document.doctype.publicId}"` : ''}${!document.doctype.publicId && document.doctype.systemId ? ' SYSTEM' : ''}${document.doctype.systemId ? ` "${document.doctype.systemId}"` : ''}>\n`
+            : '<!DOCTYPE html>\n';
+        return `${doctype}${document.documentElement.outerHTML}`;
+    }
+
+    function getEmbeddedDeployManifest() {
+        const el = document.getElementById('deploy-manifest');
+        if (!el?.textContent) return null;
+        try {
+            return JSON.parse(el.textContent);
+        } catch (_) {
+            return null;
+        }
+    }
+
+    async function fetchFileContentBase64(file) {
+        if (file === 'index.html') {
+            return encodeTextToBase64(getCurrentDocumentHtml());
+        }
+
+        const embeddedManifest = getEmbeddedDeployManifest();
+        if (embeddedManifest?.[file]) {
+            return embeddedManifest[file];
+        }
+
+        const url = new URL(file, window.location.href).href;
+        const res = await fetch(url, { cache: 'no-cache' });
+        if (!res.ok) {
+            throw new Error(`could not read ${file}`);
+        }
+        return encodeBytesToBase64(new Uint8Array(await res.arrayBuffer()));
     }
 
     function copyEmbedCode() {
@@ -548,21 +922,15 @@ document.addEventListener('DOMContentLoaded', () => {
         URL.revokeObjectURL(url);
     }
 
-    const STORAGE_KEYS = {
-        repo: 'cherry.github.repo',
-        branch: 'cherry.github.branch',
-        token: 'cherry.github.token'
-    };
-
     function hydrateGithubSettings() {
         try {
-            const repo = localStorage.getItem(STORAGE_KEYS.repo);
-            const branch = localStorage.getItem(STORAGE_KEYS.branch) || 'main';
+            const repo = localStorage.getItem(STORAGE_KEYS.repo) || DEFAULT_GITHUB_REPO;
+            const branch = localStorage.getItem(STORAGE_KEYS.branch) || DEFAULT_GITHUB_BRANCH;
             const token = localStorage.getItem(STORAGE_KEYS.token);
             if (githubUrlInput) githubUrlInput.value = repo || '';
             if (githubBranchInput) githubBranchInput.value = branch;
             if (githubTokenInput) githubTokenInput.value = token || '';
-            setCredsStatus('Loaded stored values.', 'success');
+            setCredsStatus(token ? 'Ready to deploy.' : 'Paste your GitHub token once, then press Deploy.', token ? 'success' : 'error');
         } catch (e) {
             setCredsStatus('Local storage not available in this context.', 'error');
         }
@@ -570,8 +938,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function saveGithubSettings() {
         try {
-            if (githubUrlInput) localStorage.setItem(STORAGE_KEYS.repo, githubUrlInput.value.trim());
-            if (githubBranchInput) localStorage.setItem(STORAGE_KEYS.branch, githubBranchInput.value.trim() || 'main');
+            if (githubUrlInput) {
+                githubUrlInput.value = githubUrlInput.value.trim() || DEFAULT_GITHUB_REPO;
+                localStorage.setItem(STORAGE_KEYS.repo, githubUrlInput.value);
+            }
+            if (githubBranchInput) {
+                githubBranchInput.value = githubBranchInput.value.trim() || DEFAULT_GITHUB_BRANCH;
+                localStorage.setItem(STORAGE_KEYS.branch, githubBranchInput.value);
+            }
             flashButton(saveGithubSettingsBtn, 'Saved');
             setCredsStatus('Repo and branch saved.', 'success');
         } catch (e) {
@@ -619,6 +993,70 @@ document.addEventListener('DOMContentLoaded', () => {
         credsStatus.classList.add(tone);
     }
 
+    function hydrateWebhookSettings() {
+        const prod = localStorage.getItem(STORAGE_KEYS.webhookProd) || WEBHOOK_URL_PROD;
+        const test = localStorage.getItem(STORAGE_KEYS.webhookTest) || WEBHOOK_URL_TEST;
+        const chat = localStorage.getItem(STORAGE_KEYS.webhookChat) || '';
+        const active = localStorage.getItem(STORAGE_KEYS.webhookActive) || 'prod';
+
+        if (webhookProdInput) webhookProdInput.value = prod;
+        if (webhookTestInput) webhookTestInput.value = test;
+        if (webhookChatInput) webhookChatInput.value = chat;
+
+        setActiveWebhook(active, false);
+        updateWebhookStatus(`Active: ${active.toUpperCase()}`);
+    }
+
+    function saveWebhookSettings() {
+        try {
+            if (webhookProdInput) localStorage.setItem(STORAGE_KEYS.webhookProd, webhookProdInput.value.trim() || WEBHOOK_URL_PROD);
+            if (webhookTestInput) localStorage.setItem(STORAGE_KEYS.webhookTest, webhookTestInput.value.trim() || WEBHOOK_URL_TEST);
+            if (webhookChatInput) localStorage.setItem(STORAGE_KEYS.webhookChat, webhookChatInput.value.trim());
+            if (saveWebhookSettingsBtn) flashButton(saveWebhookSettingsBtn, 'Saved');
+            updateWebhookStatus('Saved webhook URLs.', 'success');
+            const active = localStorage.getItem(STORAGE_KEYS.webhookActive) || 'prod';
+            setActiveWebhook(active, false);
+        } catch (e) {
+            updateWebhookStatus('Could not save webhook URLs (storage blocked).', 'error');
+        }
+    }
+
+    function setActiveWebhook(mode, persist = true) {
+        const prod = webhookProdInput?.value?.trim() || localStorage.getItem(STORAGE_KEYS.webhookProd) || WEBHOOK_URL_PROD;
+        const test = webhookTestInput?.value?.trim() || localStorage.getItem(STORAGE_KEYS.webhookTest) || WEBHOOK_URL_TEST;
+        const chat = webhookChatInput?.value?.trim() || localStorage.getItem(STORAGE_KEYS.webhookChat) || '';
+
+        switch (mode) {
+            case 'test':
+                currentWebhookUrl = test || WEBHOOK_URL_TEST;
+                if (webhookToggle) webhookToggle.checked = true;
+                break;
+            case 'chat':
+                currentWebhookUrl = chat || prod;
+                if (webhookToggle) webhookToggle.checked = false;
+                break;
+            default:
+                currentWebhookUrl = prod || WEBHOOK_URL_PROD;
+                if (webhookToggle) webhookToggle.checked = false;
+                mode = 'prod';
+        }
+
+        if (persist) localStorage.setItem(STORAGE_KEYS.webhookActive, mode);
+
+        webhookModeButtons.forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.target === mode);
+        });
+
+        updateWebhookStatus(`Active: ${mode.toUpperCase()}`);
+    }
+
+    function updateWebhookStatus(message, tone = 'success') {
+        if (!webhookStatus) return;
+        webhookStatus.textContent = message;
+        webhookStatus.classList.remove('success', 'error');
+        webhookStatus.classList.add(tone);
+    }
+
     function parseRepoPath(url) {
         if (!url) return null;
         const trimmed = url.trim().replace(/^https?:\/\/github\.com\//i, '');
@@ -630,7 +1068,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function testGithubAccess() {
-        const repoPath = parseRepoPath(githubUrlInput?.value);
+        const repoPath = parseRepoPath(githubUrlInput?.value || DEFAULT_GITHUB_REPO);
         if (!repoPath) {
             setCredsStatus('Enter a valid GitHub repo URL (e.g., https://github.com/owner/repo).', 'error');
             return;
@@ -641,7 +1079,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const branch = (githubBranchInput?.value || localStorage.getItem(STORAGE_KEYS.branch) || 'main').trim() || 'main';
+        const branch = (githubBranchInput?.value || localStorage.getItem(STORAGE_KEYS.branch) || DEFAULT_GITHUB_BRANCH).trim() || DEFAULT_GITHUB_BRANCH;
         setCredsStatus('Testing access...', 'success');
 
         try {
@@ -707,10 +1145,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (webhookToggle) {
         webhookToggle.addEventListener('change', (e) => {
             if (e.target.checked) {
-                currentWebhookUrl = WEBHOOK_URL_TEST;
+                setActiveWebhook('test');
                 console.log("Switched to Test Webhook");
             } else {
-                currentWebhookUrl = WEBHOOK_URL_PROD;
+                setActiveWebhook('prod');
                 console.log("Switched to Prod Webhook");
             }
         });
