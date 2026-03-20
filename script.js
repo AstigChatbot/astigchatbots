@@ -65,6 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const WEBHOOK_URL_TEST = 'https://n8n.srv1291312.hstgr.cloud/webhook-test/33042864-3282-4dd6-95ab-6ffa983a8196';
     const DEFAULT_GITHUB_REPO = 'AstigChatbot/astigchatbots';
     const DEFAULT_GITHUB_BRANCH = 'main';
+    const DEFAULT_EMBED_CDN_BASE = 'https://cdn.jsdelivr.net/gh/AstigChatbot/astigchatbots@ecc56b6';
     let currentWebhookUrl = WEBHOOK_URL_PROD;
 
     const STORAGE_KEYS = {
@@ -596,9 +597,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateEmbedDefaults() {
-        const ghBase = 'https://cdn.jsdelivr.net/gh/AstigChatbot/astigchatbots@main';
         if (embedJsUrlInput && !embedJsUrlInput.value) {
-            embedJsUrlInput.value = `${ghBase}/auto-embed.js`;
+            embedJsUrlInput.value = `${DEFAULT_EMBED_CDN_BASE}/auto-embed.js`;
         }
         if (embedCssUrlInput && !embedCssUrlInput.value) {
             embedCssUrlInput.value = 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css';
@@ -606,13 +606,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function buildEmbedCode() {
-        const jsUrl = (embedJsUrlInput?.value || '').trim() || 'https://cdn.jsdelivr.net/gh/AstigChatbot/astigchatbots@main/auto-embed.js';
-        const cssUrl = (embedCssUrlInput?.value || '').trim() || 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css';
+        const jsUrl = (embedJsUrlInput?.value || '').trim() || `${DEFAULT_EMBED_CDN_BASE}/auto-embed.js`;
         const webhook = currentWebhookUrl || WEBHOOK_URL_PROD;
-        const useDefaultCss = cssUrl === 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css';
-        return useDefaultCss
-            ? `<script src="${jsUrl}" data-webhook="${webhook}"></script>`
-            : `<script src="${jsUrl}" data-webhook="${webhook}" data-css="${cssUrl}"></script>`;
+        const launcherIcon = (localStorage.getItem(STORAGE_KEYS.launcherIcon) || '').trim();
+        const launcherShape = (localStorage.getItem(STORAGE_KEYS.launcherShape) || 'circle').trim() || 'circle';
+        const launcherAnim = (localStorage.getItem(STORAGE_KEYS.launcherAnim) || 'none').trim() || 'none';
+        const launcher3d = (localStorage.getItem(STORAGE_KEYS.launcher3d) || 'false') === 'true';
+        let appUrl = `${DEFAULT_EMBED_CDN_BASE}/index.html`;
+        try {
+            appUrl = new URL('index.html', jsUrl).href;
+        } catch (_) { /* ignore */ }
+        const attrs = [
+            `src="${jsUrl}"`,
+            `data-webhook="${webhook}"`,
+            `data-app-url="${appUrl}"`
+        ];
+        if (launcherIcon) attrs.push(`data-icon-url="${launcherIcon}"`);
+        if (launcherShape) attrs.push(`data-icon-shape="${launcherShape}"`);
+        if (launcherAnim && launcherAnim !== 'none') attrs.push(`data-icon-anim="${launcherAnim}"`);
+        if (launcher3d) attrs.push('data-icon-3d="true"');
+        return `<script ${attrs.join(' ')}></script>`;
     }
 
     function updateEmbedCode() {
@@ -899,14 +912,31 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function downloadEmbedJs() {
-        const containerId = (embedContainerIdInput?.value || 'cherry-embed').trim() || 'cherry-embed';
-        const content = `(() => {\n  const target = (document.currentScript.dataset.target) || '${containerId}';\n  const host = '${window.location.origin}';\n  const container = document.getElementById(target);\n  if (!container) return;\n  const iframe = document.createElement('iframe');\n  iframe.src = host;\n  iframe.allow = 'clipboard-read; clipboard-write; microphone; autoplay';\n  iframe.style = 'width:100%;min-height:520px;border:0;border-radius:16px;box-shadow:0 12px 30px rgba(0,0,0,0.25);';\n  container.innerHTML = '';\n  container.appendChild(iframe);\n})();\n`;
+        const jsUrl = (embedJsUrlInput?.value || '').trim() || `${DEFAULT_EMBED_CDN_BASE}/auto-embed.js`;
+        const webhook = currentWebhookUrl || WEBHOOK_URL_PROD;
+        const launcherIcon = (localStorage.getItem(STORAGE_KEYS.launcherIcon) || '').trim();
+        const launcherShape = (localStorage.getItem(STORAGE_KEYS.launcherShape) || 'circle').trim() || 'circle';
+        const launcherAnim = (localStorage.getItem(STORAGE_KEYS.launcherAnim) || 'none').trim() || 'none';
+        const launcher3d = (localStorage.getItem(STORAGE_KEYS.launcher3d) || 'false') === 'true';
+        let appUrl = `${DEFAULT_EMBED_CDN_BASE}/index.html`;
+        try {
+            appUrl = new URL('index.html', jsUrl).href;
+        } catch (_) { /* ignore */ }
+        const attrs = [
+            `s.src = ${JSON.stringify(jsUrl)};`,
+            `s.dataset.webhook = ${JSON.stringify(webhook)};`,
+            `s.dataset.appUrl = ${JSON.stringify(appUrl)};`
+        ];
+        if (launcherIcon) attrs.push(`s.dataset.iconUrl = ${JSON.stringify(launcherIcon)};`);
+        if (launcherShape) attrs.push(`s.dataset.iconShape = ${JSON.stringify(launcherShape)};`);
+        if (launcherAnim && launcherAnim !== 'none') attrs.push(`s.dataset.iconAnim = ${JSON.stringify(launcherAnim)};`);
+        if (launcher3d) attrs.push(`s.dataset.icon3d = 'true';`);
+        const content = `(() => {\n  const s = document.createElement('script');\n  ${attrs.join('\n  ')}\n  document.body.appendChild(s);\n})();\n`;
         triggerDownload('cherry-embed.js', content, 'text/javascript');
     }
 
     function downloadEmbedCss() {
-        const containerId = (embedContainerIdInput?.value || 'cherry-embed').trim() || 'cherry-embed';
-        const content = `#${containerId} {\n  width: 100%;\n  max-width: 480px;\n  margin: 0 auto;\n}\n#${containerId} iframe {\n  width: 100%;\n  min-height: 520px;\n  border: none;\n  border-radius: 16px;\n  box-shadow: 0 10px 30px rgba(0,0,0,0.2);\n  background: transparent;\n}\n`;
+        const content = '/* Cherry floating embed does not require a separate CSS file. */\n';
         triggerDownload('cherry-embed.css', content, 'text/css');
     }
 
