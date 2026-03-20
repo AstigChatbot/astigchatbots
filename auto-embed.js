@@ -39,10 +39,20 @@
         .then((html) => {
           const baseHref = new URL('.', appUrl).href;
           const configScript = `<script>window.__CHERRY_RUNTIME_CONFIG={embed:true,widget:true,webhook:'${escapeForInlineScript(webhookUrl)}'};<\/script>`;
+          const embedStyle = `<style>
+html, body { background: transparent !important; }
+body .app-logo,
+body .floating-menu,
+body .left-menu,
+body .background-globes,
+body.embed-widget-mode .chat-launcher {
+  display: none !important;
+}
+</style>`;
           if (/<head[^>]*>/i.test(html)) {
-            return html.replace(/<head([^>]*)>/i, `<head$1><base href="${baseHref}">${configScript}`);
+            return html.replace(/<head([^>]*)>/i, `<head$1><base href="${baseHref}">${configScript}${embedStyle}`);
           }
-          return `<!DOCTYPE html><html><head><base href="${baseHref}">${configScript}</head><body>${html}</body></html>`;
+          return `<!DOCTYPE html><html><head><base href="${baseHref}">${configScript}${embedStyle}</head><body>${html}</body></html>`;
         });
     }
     return appMarkupPromise;
