@@ -66,6 +66,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const DEFAULT_GITHUB_REPO = 'AstigChatbot/astigchatbots';
     const DEFAULT_GITHUB_BRANCH = 'main';
     let currentWebhookUrl = WEBHOOK_URL_PROD;
+    const runtimeParams = new URLSearchParams(window.location.search);
+    const runtimeConfig = window.__CHERRY_RUNTIME_CONFIG || {};
+    const EMBED_MODE = runtimeParams.get('embed') === '1' || runtimeConfig.embed === true;
+    const EMBED_WIDGET_MODE = runtimeParams.get('widget') === '1' || runtimeConfig.widget === true;
+
+    if (EMBED_MODE) {
+        document.body.classList.add('embed-mode');
+    }
+    if (EMBED_WIDGET_MODE) {
+        document.body.classList.add('embed-widget-mode');
+    }
 
     const STORAGE_KEYS = {
         repo: 'cherry.github.repo',
@@ -700,6 +711,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let deployStatusEl = null;
 
     function getDeployStatusEl() {
+        if (EMBED_MODE) return null;
         if (deployStatusEl) return deployStatusEl;
         deployStatusEl = document.createElement('div');
         deployStatusEl.id = 'deploy-status-banner';
@@ -722,6 +734,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function showDeployStatus(message, percent = 0, type = 'info') {
         const el = getDeployStatusEl();
+        if (!el) return;
         const color = type === 'error' ? '#f43f5e' : type === 'success' ? '#22c55e' : '#38bdf8';
         el.style.border = `1px solid ${color}55`;
         el.style.boxShadow = `0 12px 28px ${color}33`;
