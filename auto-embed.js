@@ -105,9 +105,9 @@
     panel.hidden = true;
     panel.style.position = 'absolute';
     panel.style.right = '0';
-    panel.style.bottom = '84px';
-    panel.style.width = 'min(660px, calc(100vw - 32px))';
-    panel.style.height = 'min(90vh, 820px)';
+    panel.style.bottom = '80px';
+    panel.style.width = 'min(620px, calc(100vw - 24px))';
+    panel.style.height = 'min(88vh, 800px)';
     panel.style.borderRadius = '0';
     panel.style.overflow = 'visible';
     panel.style.boxShadow = 'none';
