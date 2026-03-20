@@ -65,7 +65,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const WEBHOOK_URL_TEST = 'https://n8n.srv1291312.hstgr.cloud/webhook-test/33042864-3282-4dd6-95ab-6ffa983a8196';
     const DEFAULT_GITHUB_REPO = 'AstigChatbot/astigchatbots';
     const DEFAULT_GITHUB_BRANCH = 'main';
+    const DEFAULT_EMBED_RUNTIME_BASE = 'https://cdn.jsdelivr.net/gh/AstigChatbot/astigchatbots@43f050b';
+    const DEFAULT_EMBED_APP_BASE = 'https://cdn.jsdelivr.net/gh/AstigChatbot/astigchatbots@97e7c59';
     let currentWebhookUrl = WEBHOOK_URL_PROD;
+    const runtimeParams = new URLSearchParams(window.location.search);
+    const runtimeConfig = window.__CHERRY_RUNTIME_CONFIG || {};
+    const EMBED_MODE = runtimeParams.get('embed') === '1' || runtimeConfig.embed === true;
+    const EMBED_WIDGET_MODE = runtimeParams.get('widget') === '1' || runtimeConfig.widget === true;
+
+    if (EMBED_MODE) {
+        document.body.classList.add('embed-mode');
+    }
+    if (EMBED_WIDGET_MODE) {
+        document.body.classList.add('embed-widget-mode');
+    }
 
     const STORAGE_KEYS = {
         repo: 'cherry.github.repo',
@@ -86,6 +99,15 @@ document.addEventListener('DOMContentLoaded', () => {
         embedAppBase: 'cherry.embed.appBase',
         deployCommit: 'cherry.deploy.commit'
     };
+
+    function safeStorageGet(key, fallback = '') {
+        try {
+            const value = localStorage.getItem(key);
+            return value ?? fallback;
+        } catch (_) {
+            return fallback;
+        }
+    }
 
     // State for interactive actions
     let isAskingForEmail = false;
@@ -599,11 +621,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function getStoredEmbedBase(key, fallback) {
-        try {
-            return localStorage.getItem(key) || fallback;
-        } catch (_) {
-            return fallback;
-        }
+        return safeStorageGet(key, fallback) || fallback;
     }
 
     function getActiveEmbedRuntimeBase() {
@@ -645,10 +663,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const jsUrl = `${runtimeBase}/auto-embed.js`;
         const appUrl = `${appBase}/index.html`;
         const webhook = currentWebhookUrl || WEBHOOK_URL_PROD;
-        const iconUrl = (widgetIconInput?.value || localStorage.getItem(STORAGE_KEYS.launcherIcon) || '').trim();
-        const shape = widgetShapeSelect?.value || localStorage.getItem(STORAGE_KEYS.launcherShape) || 'circle';
-        const anim = widgetAnimSelect?.value || localStorage.getItem(STORAGE_KEYS.launcherAnim) || 'none';
-        const is3d = widget3dCheckbox?.checked ?? ((localStorage.getItem(STORAGE_KEYS.launcher3d) || 'false') === 'true');
+        const iconUrl = (widgetIconInput?.value || safeStorageGet(STORAGE_KEYS.launcherIcon, '') || '').trim();
+        const shape = widgetShapeSelect?.value || safeStorageGet(STORAGE_KEYS.launcherShape, 'circle') || 'circle';
+        const anim = widgetAnimSelect?.value || safeStorageGet(STORAGE_KEYS.launcherAnim, 'none') || 'none';
+        const is3d = widget3dCheckbox?.checked ?? ((safeStorageGet(STORAGE_KEYS.launcher3d, 'false') || 'false') === 'true');
         const attrs = [
             `src="${jsUrl}"`,
             `data-webhook="${webhook}"`,
@@ -898,15 +916,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function deployToGithub() {
-        const repoPath = parseRepoPath(githubUrlInput?.value || localStorage.getItem(STORAGE_KEYS.repo) || DEFAULT_GITHUB_REPO);
+        const repoPath = parseRepoPath(githubUrlInput?.value || safeStorageGet(STORAGE_KEYS.repo, DEFAULT_GITHUB_REPO) || DEFAULT_GITHUB_REPO);
         if (!repoPath) {
             openCredsDrawer(true);
             setCredsStatus('Repository is missing. It has been reset to the default project repo.', 'error');
             if (githubUrlInput) githubUrlInput.value = DEFAULT_GITHUB_REPO;
             return;
         }
-        const branch = (githubBranchInput?.value || localStorage.getItem(STORAGE_KEYS.branch) || DEFAULT_GITHUB_BRANCH).trim() || DEFAULT_GITHUB_BRANCH;
-        const token = (githubTokenInput?.value || localStorage.getItem(STORAGE_KEYS.token) || '').trim();
+        const branch = (githubBranchInput?.value || safeStorageGet(STORAGE_KEYS.branch, DEFAULT_GITHUB_BRANCH) || DEFAULT_GITHUB_BRANCH).trim() || DEFAULT_GITHUB_BRANCH;
+        const token = (githubTokenInput?.value || safeStorageGet(STORAGE_KEYS.token, '') || '').trim();
         if (!token) {
             openCredsDrawer(true);
             showDeployStatus('Paste your GitHub token once, then press Deploy again.', 0, 'error');
