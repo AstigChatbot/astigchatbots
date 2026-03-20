@@ -903,13 +903,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return encodeBytesToBase64(new TextEncoder().encode(text));
     }
 
-    function getCurrentDocumentHtml() {
-        const doctype = document.doctype
-            ? `<!DOCTYPE ${document.doctype.name}${document.doctype.publicId ? ` PUBLIC "${document.doctype.publicId}"` : ''}${!document.doctype.publicId && document.doctype.systemId ? ' SYSTEM' : ''}${document.doctype.systemId ? ` "${document.doctype.systemId}"` : ''}>\n`
-            : '<!DOCTYPE html>\n';
-        return `${doctype}${document.documentElement.outerHTML}`;
-    }
-
     function getEmbeddedDeployManifest() {
         const el = document.getElementById('deploy-manifest');
         if (!el?.textContent) return null;
@@ -921,10 +914,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function fetchFileContentBase64(file) {
-        if (file === 'index.html') {
-            return encodeTextToBase64(getCurrentDocumentHtml());
-        }
-
         const embeddedManifest = getEmbeddedDeployManifest();
         if (embeddedManifest?.[file]) {
             return embeddedManifest[file];
@@ -938,21 +927,27 @@ document.addEventListener('DOMContentLoaded', () => {
         return encodeBytesToBase64(new Uint8Array(await res.arrayBuffer()));
     }
 
-    function copyEmbedCode() {
+    async function copyEmbedCode() {
         const code = buildEmbedCode();
-        if (navigator.clipboard?.writeText) {
-            navigator.clipboard.writeText(code);
-            copyEmbedBtn.textContent = 'Copied';
-            setTimeout(() => copyEmbedBtn.textContent = 'Copy', 1200);
-        } else {
-            // Fallback
+        try {
+            if (navigator.clipboard?.writeText) {
+                await navigator.clipboard.writeText(code);
+            } else {
+                throw new Error('Clipboard API unavailable');
+            }
+        } catch (_) {
             const textarea = document.createElement('textarea');
             textarea.value = code;
+            textarea.setAttribute('readonly', 'true');
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
             document.body.appendChild(textarea);
             textarea.select();
             document.execCommand('copy');
             document.body.removeChild(textarea);
         }
+        copyEmbedBtn.textContent = 'Copied';
+        setTimeout(() => copyEmbedBtn.textContent = 'Copy', 1200);
     }
 
     function downloadEmbedJs() {
