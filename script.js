@@ -94,8 +94,20 @@ document.addEventListener('DOMContentLoaded', () => {
         webhookProd: 'cherry.webhook.prod',
         webhookTest: 'cherry.webhook.test',
         webhookChat: 'cherry.webhook.chat',
-        webhookActive: 'cherry.webhook.active'
+        webhookActive: 'cherry.webhook.active',
+        embedRuntimeBase: 'cherry.embed.runtimeBase',
+        embedAppBase: 'cherry.embed.appBase',
+        deployCommit: 'cherry.deploy.commit'
     };
+
+    function safeStorageGet(key, fallback = '') {
+        try {
+            const value = localStorage.getItem(key);
+            return value ?? fallback;
+        } catch (_) {
+            return fallback;
+        }
+    }
 
     // State for interactive actions
     let isAskingForEmail = false;
@@ -784,33 +796,134 @@ document.addEventListener('DOMContentLoaded', () => {
         el.innerHTML = `<strong style="color:${color}">${Math.min(100, Math.max(0, percent))}%</strong> &nbsp; ${message}`;
     }
 
-    async function fetchSha(repoPath, branch, file, token) {
-        try {
-            const resp = await fetch(`https://api.github.com/repos/${repoPath}/contents/${file}?ref=${encodeURIComponent(branch)}`, {
-                headers: {
-                    'Accept': 'application/vnd.github+json',
-                    'Authorization': `Bearer ${token}`,
-                    'User-Agent': 'Cherry-Deploy'
-                }
-            });
-            if (resp.ok) {
-                const json = await resp.json();
-                return json.sha;
+    async function githubJson(url, token, options = {}) {
+        const resp = await fetch(url, {
+            ...options,
+            headers: {
+                'Accept': 'application/vnd.github+json',
+                'Authorization': `Bearer ${token}`,
+                'User-Agent': 'Cherry-Deploy',
+                ...(options.headers || {})
             }
-        } catch (_) { /* ignore */ }
-        return null;
+        });
+
+        if (!resp.ok) {
+            const text = await resp.text();
+            throw new Error(`GitHub ${resp.status}: ${text}`);
+        }
+
+        return resp.status === 204 ? null : resp.json();
+    }
+
+    async function fetchBranchHead(repoPath, branch, token) {
+        const ref = await githubJson(`https://api.github.com/repos/${repoPath}/git/ref/heads/${encodeURIComponent(branch)}`, token);
+        return ref?.object?.sha;
+    }
+
+    async function fetchCommit(repoPath, commitSha, token) {
+        return githubJson(`https://api.github.com/repos/${repoPath}/git/commits/${commitSha}`, token);
+    }
+
+    async function createBlob(repoPath, content, token) {
+        const json = await githubJson(`https://api.github.com/repos/${repoPath}/git/blobs`, token, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                content,
+                encoding: 'base64'
+            })
+        });
+        return json.sha;
+    }
+
+    async function createTree(repoPath, baseTreeSha, treeEntries, token) {
+        const json = await githubJson(`https://api.github.com/repos/${repoPath}/git/trees`, token, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                base_tree: baseTreeSha,
+                tree: treeEntries
+            })
+        });
+        return json.sha;
+    }
+
+    async function createCommit(repoPath, message, treeSha, parentSha, token) {
+        const json = await githubJson(`https://api.github.com/repos/${repoPath}/git/commits`, token, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                message,
+                tree: treeSha,
+                parents: [parentSha]
+            })
+        });
+        return json.sha;
+    }
+
+    async function updateBranchHead(repoPath, branch, commitSha, token) {
+        await githubJson(`https://api.github.com/repos/${repoPath}/git/refs/heads/${encodeURIComponent(branch)}`, token, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                sha: commitSha,
+                force: false
+            })
+        });
+    }
+
+    function normalizeBase64(content) {
+        return String(content || '').replace(/\s+/g, '');
+    }
+
+    async function fetchRepoFileBase64(repoPath, ref, file, token) {
+        const json = await githubJson(`https://api.github.com/repos/${repoPath}/contents/${encodeURIComponent(file)}?ref=${encodeURIComponent(ref)}`, token);
+        return normalizeBase64(json?.content || '');
+    }
+
+    async function verifyDeployedFiles(repoPath, commitSha, token, expectedFiles) {
+        const files = ['index.html', 'script.js', 'styles.css', 'auto-embed.js'];
+
+        for (let attempt = 0; attempt < 6; attempt += 1) {
+            let allMatched = true;
+
+            for (const file of files) {
+                const [expectedBase64, repoBase64] = await Promise.all([
+                    Promise.resolve(normalizeBase64(expectedFiles[file] || '')),
+                    fetchRepoFileBase64(repoPath, commitSha, file, token)
+                ]);
+
+                if (!expectedBase64 || expectedBase64 !== repoBase64) {
+                    allMatched = false;
+                    break;
+                }
+            }
+
+            if (allMatched) return;
+            await new Promise((resolve) => setTimeout(resolve, 1200));
+        }
+
+        throw new Error('Live verification did not match after retrying GitHub API');
     }
 
     async function deployToGithub() {
-        const repoPath = parseRepoPath(githubUrlInput?.value || localStorage.getItem(STORAGE_KEYS.repo) || DEFAULT_GITHUB_REPO);
+        const repoPath = parseRepoPath(githubUrlInput?.value || safeStorageGet(STORAGE_KEYS.repo, DEFAULT_GITHUB_REPO) || DEFAULT_GITHUB_REPO);
         if (!repoPath) {
             openCredsDrawer(true);
             setCredsStatus('Repository is missing. It has been reset to the default project repo.', 'error');
             if (githubUrlInput) githubUrlInput.value = DEFAULT_GITHUB_REPO;
             return;
         }
-        const branch = (githubBranchInput?.value || localStorage.getItem(STORAGE_KEYS.branch) || DEFAULT_GITHUB_BRANCH).trim() || DEFAULT_GITHUB_BRANCH;
-        const token = (githubTokenInput?.value || localStorage.getItem(STORAGE_KEYS.token) || '').trim();
+        const branch = (githubBranchInput?.value || safeStorageGet(STORAGE_KEYS.branch, DEFAULT_GITHUB_BRANCH) || DEFAULT_GITHUB_BRANCH).trim() || DEFAULT_GITHUB_BRANCH;
+        const token = (githubTokenInput?.value || safeStorageGet(STORAGE_KEYS.token, '') || '').trim();
         if (!token) {
             openCredsDrawer(true);
             showDeployStatus('Paste your GitHub token once, then press Deploy again.', 0, 'error');
@@ -821,47 +934,58 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const files = getDeployFiles();
-        let completed = 0;
 
-        for (const file of files) {
-            const progress = Math.round((completed / files.length) * 100);
-            showDeployStatus(`Uploading ${file}...`, progress, 'info');
-            try {
+        try {
+            showDeployStatus(`Preparing ${branch}...`, 5, 'info');
+            const parentSha = await fetchBranchHead(repoPath, branch, token);
+            const parentCommit = await fetchCommit(repoPath, parentSha, token);
+            const treeEntries = [];
+            const expectedFiles = {};
+
+            for (let i = 0; i < files.length; i += 1) {
+                const file = files[i];
+                const progress = 10 + Math.round((i / Math.max(1, files.length)) * 45);
+                showDeployStatus(`Staging ${file}...`, progress, 'info');
                 const encoded = await fetchFileContentBase64(file);
-                const sha = await fetchSha(repoPath, branch, file, token);
-
-                const body = {
-                    message: `Deploy ${file}`,
-                    content: encoded,
-                    branch
-                };
-                if (sha) body.sha = sha;
-
-                const ghResp = await fetch(`https://api.github.com/repos/${repoPath}/contents/${file}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Accept': 'application/vnd.github+json',
-                        'Authorization': `Bearer ${token}`,
-                        'User-Agent': 'Cherry-Deploy',
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(body)
+                expectedFiles[file] = encoded;
+                const blobSha = await createBlob(repoPath, encoded, token);
+                treeEntries.push({
+                    path: file,
+                    mode: '100644',
+                    type: 'blob',
+                    sha: blobSha
                 });
-
-                if (!ghResp.ok) {
-                    const text = await ghResp.text();
-                    throw new Error(`GitHub ${ghResp.status}: ${text}`);
-                }
-            } catch (err) {
-                showDeployStatus(`Error deploying ${file}: ${err.message}`, progress, 'error');
-                setCredsStatus(`Deploy failed: ${err.message}`, 'error');
-                return;
             }
-            completed += 1;
+
+            showDeployStatus('Creating commit...', 60, 'info');
+            const commitMessage = `Deploy Cherry builder ${new Date().toISOString()}`;
+            const treeSha = await createTree(repoPath, parentCommit.tree.sha, treeEntries, token);
+            const commitSha = await createCommit(repoPath, commitMessage, treeSha, parentSha, token);
+
+            showDeployStatus(`Pushing ${commitSha.slice(0, 7)}...`, 75, 'info');
+            await updateBranchHead(repoPath, branch, commitSha, token);
+
+            const pinnedBase = `https://cdn.jsdelivr.net/gh/${repoPath}@${commitSha}`;
+            setActiveEmbedBases(pinnedBase, pinnedBase, commitSha);
+            updateEmbedCode();
+            let verificationWarning = '';
+
+            try {
+                showDeployStatus('Verifying live files...', 88, 'info');
+                await verifyDeployedFiles(repoPath, commitSha, token, expectedFiles);
+            } catch (verificationError) {
+                console.warn('Cherry deploy verification warning:', verificationError);
+                verificationWarning = ' Verification warning only: using the pushed commit anyway.';
+            }
+
+            showDeployStatus(`Deploy complete ${commitSha.slice(0, 7)}`, 100, 'success');
+            setCredsStatus(`Deployed ${repoPath}@${commitSha.slice(0, 7)}. Embed code is now commit-pinned.${verificationWarning}`, verificationWarning ? 'error' : 'success');
+        } catch (err) {
+            showDeployStatus(`Deploy failed: ${err.message}`, 100, 'error');
+            setCredsStatus(`Deploy failed: ${err.message}`, 'error');
+            return;
         }
 
-        showDeployStatus('Deploy complete', 100, 'success');
-        setCredsStatus(`Deploy complete: ${repoPath} updated on ${branch}.`, 'success');
         setTimeout(() => {
             if (deployStatusEl) deployStatusEl.remove();
             deployStatusEl = null;
