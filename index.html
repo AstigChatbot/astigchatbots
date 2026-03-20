@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cherry - Messages</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700&amp;display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css?v=2">
+</head>
+
+<body>
+
+    <div class="app-logo">
+        <img src="assets/cherry-logo.png" alt="Cherry logo">
+    </div>
+
+    <div class="background-globes">
+        <div class="globe globe-1"></div>
+        <div class="globe globe-2"></div>
+        <div class="globe globe-3"></div>
+    </div>
+
+    <main class="main-container">
+        <!-- Conversational Form Interface -->
+        <section class="form-interface glass-panel">
+            <!-- Character container moved inside chat-layout below -->
+            <header class="form-header">
+                <div class="brand">
+                    <div class="status-dot"></div>
+                    <h1>Cherry</h1>
+                </div>
+                <div class="emoji-greeters" aria-hidden="true">
+                    <picture class="hug-emoji">
+                        <source srcset="https://fonts.gstatic.com/s/e/notoemoji/latest/1f917/512.webp" type="image/webp">
+                        <img src="https://fonts.gstatic.com/s/e/notoemoji/latest/1f917/512.gif" alt="🤗" width="32" height="32">
+                    </picture>
+                    <picture class="wave-emoji">
+                        <source srcset="https://fonts.gstatic.com/s/e/notoemoji/latest/1f44b/512.webp" type="image/webp">
+                        <img src="https://fonts.gstatic.com/s/e/notoemoji/latest/1f44b/512.gif" alt="👋" width="32" height="32">
+                    </picture>
+                </div>
+                <div class="header-actions">
+                    <div class="webhook-toggle-container">
+                        <label class="switch">
+                            <input type="checkbox" id="webhook-toggle">
+                            <span class="slider round"></span>
+                        </label>
+                        <span class="toggle-label">Test Mode</span>
+                    </div>
+                    <a href="https://deejayedson.com/" class="settings-btn" aria-label="Home">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                        </svg>
+                    </a>
+                    <button class="settings-btn" id="email-btn" aria-label="Send Email">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z">
+                            </path>
+                            <polyline points="22,6 12,13 2,6"></polyline>
+                        </svg>
+                    </button>
+                    <button class="settings-btn" id="download-btn" aria-label="Download Chat">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                    </button>
+                    <button class="settings-btn" id="restart-btn" aria-label="Restart">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="23 4 23 10 17 10"></polyline>
+                            <polyline points="1 20 1 14 7 14"></polyline>
+                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                        </svg>
+                    </button>
+                </div>
+            </header>
+
+            <div class="chat-layout">
+                <div class="conversation-flow" id="conversation-flow">
+                    <!-- Dynamic Content Injected Here -->
+                <div class="message-wrapper"><div class="avatar"><img src="assets/character_standin.png" alt="Cherry"></div><div class="current-step"><h2>I'm Cherry.<br>Who am I speaking with?</h2></div></div></div>
+            </div>
+
+            <div class="input-area">
+                <div class="input-wrapper">
+                    <input type="text" id="user-input" placeholder="Type here..." autocomplete="off">
+                </div>
+                <div class="nav-actions">
+                    <button id="send-btn" aria-label="Submit">Submit</button>
+                </div>
+            </div>
+
+            <footer class="brand-footer">
+                <a href="https://astigmedia.com/" target="_blank" class="brand-link">Astig Media</a>
+            </footer>
+        </section>
+
+        <button class="chat-launcher rounded anim-pulse chat-launcher--3d" id="chat-launcher" aria-label="Chat With Us!" title="Chat With Us! — We typically reply in minutes">
+            <span class="sr-only" id="chat-launcher-label">Chat With Us!</span>
+            <span class="sr-only" id="chat-launcher-subtext">We typically reply in minutes</span>
+            <div class="chat-launcher__icon" id="chat-launcher-icon" aria-hidden="true" style="background-image: url(&quot;https://widjets.astigmedia.com/img/main-logo.png&quot;); width: 50px; height: 50px;"></div>
+        </button>
+    </main>
+
+    <aside class="floating-menu" aria-label="Quick actions">
+        <button class="menu-btn save">Save</button>
+        <button class="menu-btn refresh" id="refresh-btn">Refresh</button>
+        <button class="menu-btn menu">Menu</button>
+        <button class="menu-btn webhook">Webhook</button>
+        <button class="menu-btn telemetry">Telemetry</button>
+        <button class="menu-btn integration">Integration</button>
+        <button class="menu-btn deploy">Deploy</button>
+        <button class="menu-btn embed">Embed</button>
+        <button class="menu-btn converse">Converse</button>
+        <button class="menu-btn auth">Auth</button>
+    </aside>
+
+    <aside class="floating-menu left-menu" aria-label="Builder sections">
+        <button class="menu-btn questions">Questions</button>
+        <button class="menu-btn avatars">Avatars</button>
+        <button class="menu-btn widget">Widget</button>
+        <button class="menu-btn header">Header</button>
+        <button class="menu-btn footer">Footer</button>
+        <button class="menu-btn logo">Logo</button>
+        <button class="menu-btn credentials">Credentials</button>
+        <button class="menu-btn theme">Theme</button>
+        <button class="menu-btn video">Video</button>
+        <button class="menu-btn converse">Converse</button>
+    </aside>
+
+    <div class="drawer-overlay" id="drawer-overlay"></div>
+    <div class="drawer-overlay" id="creds-overlay"></div>
+    <div class="drawer-overlay" id="webhook-overlay"></div>
+    <div class="drawer-overlay" id="widget-overlay"></div>
+    <aside class="embed-drawer" id="embed-drawer" aria-hidden="true">
+        <div class="drawer-header">
+            <div>
+                <p class="drawer-kicker">Embed</p>
+                <h3>Generate a compact snippet</h3>
+            </div>
+            <button class="drawer-close" id="drawer-close" aria-label="Close embed panel">×</button>
+        </div>
+        <div class="drawer-body">
+            <label class="field">
+                <span>JS file URL</span>
+                <input type="text" id="embed-js-url" placeholder="https://yourdomain.com/cherry-embed.js">
+            </label>
+            <label class="field">
+                <span>CSS file URL (optional)</span>
+                <input type="text" id="embed-css-url" placeholder="https://yourdomain.com/cherry-embed.css">
+            </label>
+            <label class="field">
+                <span>Container ID</span>
+                <input type="text" id="embed-container-id" value="cherry-embed">
+            </label>
+
+            <div class="code-block">
+                <pre><code id="embed-code-block">&lt;script src="https://cdn.jsdelivr.net/gh/AstigChatbot/astigchatbots@main/auto-embed.js" data-webhook="https://n8n.srv1291312.hstgr.cloud/webhook/33042864-3282-4dd6-95ab-6ffa983a8196"&gt;&lt;/script&gt;</code></pre>
+                <button class="copy-btn" id="copy-embed">Copy</button>
+            </div>
+
+            <div class="download-actions">
+                <button class="download-btn" id="download-embed-js">Download JS</button>
+                <button class="download-btn" id="download-embed-css">Download CSS</button>
+            </div>
+        </div>
+    </aside>
+
+    <aside class="creds-drawer" id="creds-drawer" aria-hidden="true">
+        <div class="drawer-header">
+            <div>
+                <p class="drawer-kicker">Credentials</p>
+                <h3>GitHub access</h3>
+            </div>
+            <button class="drawer-close" id="creds-close" aria-label="Close credentials panel">×</button>
+        </div>
+        <div class="drawer-body">
+            <label class="field">
+                <span>GitHub Repository (owner/repo)</span>
+                <input type="text" id="github-url" placeholder="AstigChatbot/astigchatbots" value="AstigChatbot/astigchatbots">
+            </label>
+            <label class="field">
+                <span>Branch</span>
+                <input type="text" id="github-branch" value="main">
+            </label>
+            <div class="field">
+                <span>GitHub Token (paste once)</span>
+                <input type="password" id="github-token" placeholder="github_pat_... or ghp_..." autocomplete="off">
+            </div>
+            <div class="download-actions">
+                <button type="button" class="download-btn" id="save-github-settings">Save Repo &amp; Branch</button>
+                <button type="button" class="download-btn" id="save-github-token">Save Token</button>
+                <button type="button" class="download-btn" id="clear-github-token">Clear Token</button>
+            </div>
+            <div class="download-actions">
+                <button type="button" class="download-btn" id="test-github-access">Test Access</button>
+                <button type="button" class="download-btn" id="deploy-github-btn">Deploy to GitHub</button>
+            </div>
+            <p class="drawer-note success" id="creds-status">Ready to deploy.</p>
+        </div>
+    </aside>
+
+    <aside class="webhook-drawer" id="webhook-drawer" aria-hidden="true">
+        <div class="drawer-header">
+            <div>
+                <p class="drawer-kicker">Webhooks</p>
+                <h3>Endpoints &amp; mode</h3>
+            </div>
+            <button class="drawer-close" id="webhook-close" aria-label="Close webhook panel">×</button>
+        </div>
+        <div class="drawer-body">
+            <label class="field">
+                <span>PROD URL</span>
+                <input type="text" id="webhook-prod" placeholder="https://.../webhook">
+            </label>
+            <label class="field">
+                <span>TEST URL</span>
+                <input type="text" id="webhook-test" placeholder="https://.../webhook-test">
+            </label>
+            <label class="field">
+                <span>CHAT URL</span>
+                <input type="text" id="webhook-chat" placeholder="https://.../webhook-chat">
+            </label>
+
+            <div class="field">
+                <span>Active target</span>
+                <div class="segmented">
+                    <button type="button" class="segment" data-target="prod" id="webhook-mode-prod">Prod</button>
+                    <button type="button" class="segment" data-target="test" id="webhook-mode-test">Test</button>
+                    <button type="button" class="segment active" data-target="chat" id="webhook-mode-chat">Chat</button>
+                </div>
+            </div>
+
+            <div class="download-actions">
+                <button type="button" class="download-btn" id="save-webhook-settings">Save URLs</button>
+            </div>
+            <p class="drawer-note success" id="webhook-status">Active: CHAT</p>
+        </div>
+    </aside>
+
+    <aside class="widget-drawer" id="widget-drawer" aria-hidden="true">
+        <div class="drawer-header">
+            <div>
+                <p class="drawer-kicker">Widget</p>
+                <h3>Launcher settings</h3>
+            </div>
+            <button class="drawer-close" id="widget-close" aria-label="Close widget panel">×</button>
+        </div>
+        <div class="drawer-body">
+            <label class="field">
+                <span>Launcher label</span>
+                <input type="text" id="widget-label" placeholder="Chat with Cherry">
+            </label>
+            <label class="field">
+                <span>Launcher subtext</span>
+                <input type="text" id="widget-subtext" placeholder="We typically reply in minutes">
+            </label>
+            <label class="field">
+                <span>Icon image URL</span>
+                <input type="url" id="widget-icon-url" placeholder="https://.../icon.png">
+            </label>
+            <label class="field">
+                <span>Icon size (px)</span>
+                <input type="number" id="widget-icon-size" min="12" max="96" value="26">
+            </label>
+            <label class="field">
+                <span>Shape</span>
+                <select id="widget-shape">
+                    <option value="circle">Circle</option>
+                    <option value="rounded">Rounded</option>
+                    <option value="square">Square</option>
+                </select>
+            </label>
+            <label class="field">
+                <span>Animation</span>
+                <select id="widget-anim">
+                    <option value="none">None</option>
+                    <option value="pulse">Pulse</option>
+                    <option value="float">Float</option>
+                </select>
+            </label>
+            <label class="field checkbox-field">
+                <input type="checkbox" id="widget-3d">
+                <span>3D lift</span>
+            </label>
+            <div class="download-actions">
+                <button type="button" class="download-btn" id="save-widget-settings">Save Launcher</button>
+            </div>
+            <p class="drawer-note" id="widget-status">Visible bottom-right on page.</p>
+        </div>
+    </aside>
+
+    <script src="script.js"></script>
+
+
+
+<div id="deploy-status-banner" style="position: fixed; top: 14px; right: 14px; padding: 10px 14px; border-radius: 10px; font-family: var(--font-family, system-ui, sans-serif); font-size: 0.9rem; box-shadow: rgba(56, 189, 248, 0.2) 0px 12px 28px; z-index: 120; background: rgba(24, 24, 27, 0.92); color: rgb(248, 250, 252); border: 1px solid rgba(56, 189, 248, 0.333);"><strong style="color:#38bdf8">0%</strong> &nbsp; Uploading index.html...</div></body></html>
