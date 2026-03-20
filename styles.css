@@ -48,6 +48,12 @@ body {
     align-items: center;
 }
 
+body.embed-mode {
+    background: transparent;
+    justify-content: center;
+    align-items: stretch;
+}
+
 .app-logo {
     position: fixed;
     top: 18px;
@@ -612,6 +618,34 @@ body {
     /* Center the single form item */
     margin: 0 auto;
     position: relative;
+}
+
+body.embed-mode .app-logo,
+body.embed-mode .floating-menu,
+body.embed-mode .left-menu,
+body.embed-mode .background-globes {
+    display: none !important;
+}
+
+body.embed-mode .main-container {
+    width: 100%;
+    max-width: none;
+    height: 100dvh;
+    padding: 0;
+}
+
+body.embed-mode .form-interface {
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+body.embed-widget-mode .chat-launcher {
+    display: none !important;
 }
 
 /* Character Section (Deprecated/Removed from HTML flow, styles repurposed) */
