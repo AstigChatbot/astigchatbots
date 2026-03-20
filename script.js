@@ -65,7 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const WEBHOOK_URL_TEST = 'https://n8n.srv1291312.hstgr.cloud/webhook-test/33042864-3282-4dd6-95ab-6ffa983a8196';
     const DEFAULT_GITHUB_REPO = 'AstigChatbot/astigchatbots';
     const DEFAULT_GITHUB_BRANCH = 'main';
-    const DEFAULT_EMBED_RUNTIME_BASE = 'https://cdn.jsdelivr.net/gh/AstigChatbot/astigchatbots@afea96d';
+    const DEFAULT_EMBED_RUNTIME_BASE = 'https://cdn.jsdelivr.net/gh/AstigChatbot/astigchatbots@43f050b';
     const DEFAULT_EMBED_APP_BASE = 'https://cdn.jsdelivr.net/gh/AstigChatbot/astigchatbots@ecc56b6';
     let currentWebhookUrl = WEBHOOK_URL_PROD;
 
