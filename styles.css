@@ -622,8 +622,7 @@ body.embed-mode {
 
 body.embed-mode .app-logo,
 body.embed-mode .floating-menu,
-body.embed-mode .left-menu,
-body.embed-mode .chat-launcher {
+body.embed-mode .left-menu {
     display: none !important;
 }
 
