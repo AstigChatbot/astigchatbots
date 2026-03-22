@@ -53,9 +53,9 @@
   panel.style.height = 'min(760px, calc(100vh - 132px))';
   panel.style.borderRadius = '24px';
   panel.style.overflow = 'hidden';
-  panel.style.background = 'rgba(15, 23, 42, 0.98)';
-  panel.style.border = '1px solid rgba(255, 255, 255, 0.12)';
-  panel.style.boxShadow = '0 24px 54px rgba(0, 0, 0, 0.38)';
+  panel.style.background = 'transparent';
+  panel.style.border = '0';
+  panel.style.boxShadow = 'none';
   panel.style.opacity = '0';
   panel.style.pointerEvents = 'none';
   panel.style.transform = 'translateY(14px) scale(0.98)';
@@ -67,7 +67,9 @@
   frame.allow = 'clipboard-read; clipboard-write; microphone; autoplay';
   frame.style.width = '100%';
   frame.style.height = '100%';
+  frame.style.display = 'block';
   frame.style.border = '0';
+  frame.style.borderRadius = 'inherit';
   frame.style.background = 'transparent';
   panel.appendChild(frame);
 
@@ -123,10 +125,10 @@
 
   const embeddedBootStyle = [
     'html,body{margin:0!important;padding:0!important;width:100%!important;height:100%!important;overflow:hidden!important;background:transparent!important;}',
-    'body{visibility:visible!important;}',
-    '.app-logo,.floating-menu,.avatar-panel,.drawer-overlay,.project-name-modal,#chat-launcher,.character-section{display:none!important;}',
-    '.main-container{width:100%!important;max-width:none!important;height:100vh!important;margin:0!important;}',
-    '.form-interface{max-width:none!important;height:100vh!important;border-radius:0!important;}'
+    'body{display:block!important;visibility:visible!important;justify-content:flex-start!important;align-items:stretch!important;}',
+    '.app-logo,.background-globes,.floating-menu,.avatar-panel,.drawer-overlay,.project-name-modal,#chat-launcher,.character-section{display:none!important;}',
+    '.main-container{display:block!important;width:100%!important;max-width:none!important;height:100vh!important;min-height:100vh!important;margin:0!important;}',
+    '.form-interface{width:100%!important;max-width:none!important;height:100vh!important;min-height:100vh!important;margin:0!important;border-radius:0!important;}'
   ].join('');
 
   function postConfig() {
