@@ -124,7 +124,7 @@
   let frameLoaded = false;
 
   const embeddedBootStyle = [
-    'html,body{margin:0!important;padding:0!important;width:100%!important;height:100%!important;overflow:hidden!important;background:transparent!important;}',
+    'html,body{margin:0!important;padding:0!important;width:100%!important;height:100%!important;overflow:hidden!important;background:#0f172a!important;background-color:#0f172a!important;}',
     'body{display:block!important;visibility:visible!important;justify-content:flex-start!important;align-items:stretch!important;}',
     '.app-logo,.background-globes,.floating-menu,.avatar-panel,.drawer-overlay,.project-name-modal,#chat-launcher,.character-section{display:none!important;}',
     '.main-container{display:block!important;width:100%!important;max-width:none!important;height:100vh!important;min-height:100vh!important;margin:0!important;}',
