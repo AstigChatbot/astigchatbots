@@ -126,16 +126,31 @@
     frame.contentWindow.postMessage({ type: 'CHERRY_EMBED_CONFIG', snapshot: project }, '*');
   }
 
-  function ensureFrame() {
-    if (frame.src) return;
+  async function ensureFrame() {
+    if (frame.srcdoc || frame.src) return;
     const url = new URL(appUrl, window.location.href);
-    url.searchParams.set('embed', '1');
-    frame.src = url.toString();
-    frame.addEventListener('load', () => {
-      frameLoaded = true;
-      postConfig();
-      setTimeout(postConfig, 150);
-    }, { once: true });
+    try {
+      const response = await fetch(url.toString(), { cache: 'no-store' });
+      if (!response.ok) {
+        throw new Error(`Failed to load app HTML: ${response.status}`);
+      }
+      const html = await response.text();
+      const baseHref = url.toString().replace(/[^/]*$/, '');
+      const withEmbedFlag = html
+        .replace(/<html([^>]*)>/i, '<html$1 data-cherry-embed>')
+        .replace(/<head([^>]*)>/i, `<head$1><base href="${baseHref}">`);
+      frame.srcdoc = withEmbedFlag;
+      frame.addEventListener('load', () => {
+        frameLoaded = true;
+        try {
+          frame.contentWindow.name = 'CHERRY_EMBED_FRAME';
+        } catch (_) {}
+        postConfig();
+        setTimeout(postConfig, 150);
+      }, { once: true });
+    } catch (error) {
+      console.error('Cherry embed failed to load app HTML.', error);
+    }
   }
 
   function syncOpenState(nextOpen) {
