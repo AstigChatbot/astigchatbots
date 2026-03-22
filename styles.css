@@ -96,8 +96,8 @@ body.embedded-app {
     justify-content: stretch;
     align-items: stretch;
     overflow: hidden;
-    background: transparent !important;
-    background-color: transparent !important;
+    background: var(--bg-dark) !important;
+    background-color: var(--bg-dark) !important;
 }
 
 body.embedded-app .app-logo,
