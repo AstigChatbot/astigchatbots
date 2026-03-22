@@ -121,6 +121,14 @@
   let isOpen = false;
   let frameLoaded = false;
 
+  const embeddedBootStyle = [
+    'html,body{margin:0!important;padding:0!important;width:100%!important;height:100%!important;overflow:hidden!important;background:transparent!important;}',
+    'body{visibility:visible!important;}',
+    '.app-logo,.floating-menu,.avatar-panel,.drawer-overlay,.project-name-modal,#chat-launcher,.character-section{display:none!important;}',
+    '.main-container{width:100%!important;max-width:none!important;height:100vh!important;margin:0!important;}',
+    '.form-interface{max-width:none!important;height:100vh!important;border-radius:0!important;}'
+  ].join('');
+
   function postConfig() {
     if (!project || !frame.contentWindow) return;
     frame.contentWindow.postMessage({ type: 'CHERRY_EMBED_CONFIG', snapshot: project }, '*');
@@ -138,7 +146,7 @@
       const baseHref = url.toString().replace(/[^/]*$/, '');
       const withEmbedFlag = html
         .replace(/<html([^>]*)>/i, '<html$1 data-cherry-embed>')
-        .replace(/<head([^>]*)>/i, `<head$1><base href="${baseHref}">`);
+        .replace(/<head([^>]*)>/i, `<head$1><base href="${baseHref}"><style>${embeddedBootStyle}</style>`);
       frame.srcdoc = withEmbedFlag;
       frame.addEventListener('load', () => {
         frameLoaded = true;
