@@ -92,12 +92,14 @@ body[data-builder-style="transparent"] {
 }
 
 body.embedded-app {
+    display: block;
     justify-content: stretch;
     align-items: stretch;
     overflow: hidden;
 }
 
 body.embedded-app .app-logo,
+body.embedded-app .background-globes,
 body.embedded-app .floating-menu,
 body.embedded-app .avatar-panel,
 body.embedded-app .drawer-overlay,
@@ -107,14 +109,20 @@ body.embedded-app #chat-launcher {
 }
 
 body.embedded-app .main-container {
+    display: block;
     width: 100%;
     max-width: none;
     height: 100vh;
+    min-height: 100vh;
+    margin: 0;
 }
 
 body.embedded-app .form-interface {
+    width: 100%;
     max-width: none;
     height: 100vh;
+    min-height: 100vh;
+    margin: 0;
     border-radius: 0;
 }
 
