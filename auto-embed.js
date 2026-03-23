@@ -126,7 +126,16 @@
 
   function postConfig() {
     if (!project || !frame.contentWindow) return;
-    frame.contentWindow.postMessage({ type: 'CHERRY_EMBED_CONFIG', snapshot: project }, '*');
+    const snapshot = JSON.parse(JSON.stringify(project));
+    const webhookOverride = (script.dataset.webhook || '').trim();
+    if (webhookOverride) {
+      snapshot.webhook = {
+        ...(snapshot.webhook || {}),
+        prod: webhookOverride,
+        active: 'prod'
+      };
+    }
+    frame.contentWindow.postMessage({ type: 'CHERRY_EMBED_CONFIG', snapshot }, '*');
   }
 
   async function ensureFrame() {
