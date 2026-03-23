@@ -1325,6 +1325,21 @@ body.drawer-panel-open .floating-menu:not(.left-menu) {
     margin-bottom: 20px;
 }
 
+.header-video {
+    margin: -4px 0 20px;
+    border-radius: 18px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.header-video video {
+    width: 100%;
+    max-height: 220px;
+    display: block;
+    background: #020617;
+}
+
 .brand {
     display: flex;
     align-items: center;
