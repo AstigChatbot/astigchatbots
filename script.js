@@ -1999,9 +1999,26 @@ document.addEventListener('DOMContentLoaded', () => {
         if (webhookProdInput) webhookProdInput.value = webhookSettings.prod || WEBHOOK_URL_PROD;
         if (webhookTestInput) webhookTestInput.value = webhookSettings.test || WEBHOOK_URL_TEST;
         if (webhookChatInput) webhookChatInput.value = webhookSettings.chat || '';
-        setActiveWebhook(webhookSettings.active || 'prod');
+        const activeWebhookMode = webhookSettings.active || 'prod';
         if (webhookProdInput && webhookTestInput && webhookChatInput) {
+            setActiveWebhook(activeWebhookMode);
             saveWebhookSettings();
+        } else {
+            const prod = (webhookSettings.prod || WEBHOOK_URL_PROD).trim();
+            const test = (webhookSettings.test || WEBHOOK_URL_TEST).trim();
+            const chat = (webhookSettings.chat || '').trim();
+            switch (activeWebhookMode) {
+                case 'test':
+                    currentWebhookUrl = test || WEBHOOK_URL_TEST;
+                    break;
+                case 'chat':
+                    currentWebhookUrl = chat || prod || WEBHOOK_URL_PROD;
+                    break;
+                default:
+                    currentWebhookUrl = prod || WEBHOOK_URL_PROD;
+                    break;
+            }
+            updateWebhookDebug(activeWebhookMode, currentWebhookUrl);
         }
 
         const githubSettings = snapshot?.github || {};
