@@ -2770,10 +2770,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function buildEmbedCode() {
         const snapshot = getProjectSnapshot();
         const runtimeBase = ((embedJsUrlInput?.value || '').trim().replace(/\/auto-embed\.js$/i, '')) || getActiveEmbedRuntimeBase();
-        const appBase = ((embedCssUrlInput?.value || '').trim().replace(/\/index\.html$/i, '')) || getActiveEmbedAppBase();
+        const appBase = ((embedCssUrlInput?.value || '').trim().replace(/\/(?:index|embed)\.html$/i, '')) || getActiveEmbedAppBase();
         const jsUrl = `${runtimeBase}/auto-embed.js`;
         const appUrl = `${appBase}/embed.html`;
-        const webhook = currentWebhookUrl || snapshot?.webhook?.prod || WEBHOOK_URL_PROD;
+        const webhook = (webhookProdInput?.value || '').trim()
+            || snapshot?.webhook?.prod
+            || safeStorageGet(STORAGE_KEYS.webhookProd, WEBHOOK_URL_PROD)
+            || WEBHOOK_URL_PROD;
         const iconUrl = snapshot?.widget?.icon || '';
         const shape = snapshot?.widget?.shape || 'circle';
         const anim = snapshot?.widget?.animation || 'none';
