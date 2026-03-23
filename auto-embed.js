@@ -130,10 +130,16 @@
   }
 
   async function ensureFrame() {
-    if (frame.src) return;
+    if (frame.srcdoc || frame.src) return;
     const url = new URL(appUrl, window.location.href);
     try {
-      frame.src = url.toString();
+      const response = await fetch(url.toString(), { cache: 'no-store' });
+      if (!response.ok) {
+        throw new Error(`Failed to load app HTML: ${response.status}`);
+      }
+      const html = await response.text();
+      const baseHref = url.toString().replace(/[^/]*$/, '');
+      frame.srcdoc = html.replace(/<head([^>]*)>/i, `<head$1><base href="${baseHref}">`);
       frame.addEventListener('load', () => {
         frameLoaded = true;
         try {
