@@ -1324,6 +1324,14 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
+    function getStoredBrandLogoSettings() {
+        return sanitizeLogoSettings({
+            url: safeStorageGet(STORAGE_KEYS.logoUrl, getDefaultLogoSettings().url),
+            size: safeStorageGet(STORAGE_KEYS.logoSize, String(getDefaultLogoSettings().size)),
+            animation: safeStorageGet(STORAGE_KEYS.logoAnimation, getDefaultLogoSettings().animation)
+        });
+    }
+
     function setLogoStatus(text, type = 'info') {
         if (!logoStatus) return;
         logoStatus.textContent = text;
@@ -1360,6 +1368,14 @@ document.addEventListener('DOMContentLoaded', () => {
             brandLogoWrap.style.height = `${settings.size}px`;
         }
         document.documentElement.style.setProperty('--brand-logo-size', `${settings.size}px`);
+    }
+
+    function persistBrandLogoSettings(settings) {
+        const nextSettings = sanitizeLogoSettings(settings);
+        safeStorageSet(STORAGE_KEYS.logoUrl, nextSettings.url);
+        safeStorageSet(STORAGE_KEYS.logoSize, String(nextSettings.size));
+        safeStorageSet(STORAGE_KEYS.logoAnimation, nextSettings.animation);
+        applyLogoSettings(nextSettings);
     }
 
     function previewLogoTarget(target, url) {
@@ -1414,11 +1430,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function hydrateLogoSettings() {
-        const settings = sanitizeLogoSettings({
-            url: safeStorageGet(STORAGE_KEYS.logoUrl, getDefaultLogoSettings().url),
-            size: safeStorageGet(STORAGE_KEYS.logoSize, String(getDefaultLogoSettings().size)),
-            animation: safeStorageGet(STORAGE_KEYS.logoAnimation, getDefaultLogoSettings().animation)
-        });
+        const settings = getStoredBrandLogoSettings();
 
         if (logoUrlInput) logoUrlInput.value = settings.url;
         if (logoSizeInput) logoSizeInput.value = String(settings.size);
@@ -1473,10 +1485,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (widgetIconInput) widgetIconInput.value = settings.url;
             saveWidgetSettings();
         } else {
-            safeStorageSet(STORAGE_KEYS.logoUrl, settings.url);
-            safeStorageSet(STORAGE_KEYS.logoSize, String(settings.size));
-            safeStorageSet(STORAGE_KEYS.logoAnimation, settings.animation);
-            applyLogoSettings(settings);
+            persistBrandLogoSettings(settings);
         }
         flashButton(saveLogoSettingsBtn, 'Applied');
         setLogoStatus(`${target.charAt(0).toUpperCase() + target.slice(1)} logo updated in the preview and saved for export.`, 'success');
@@ -1511,11 +1520,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 showDownload: !!headerShowDownloadInput?.checked,
                 showRestart: !!headerShowRestartInput?.checked
             },
-            logo: sanitizeLogoSettings({
-                url: logoUrlInput?.value || safeStorageGet(STORAGE_KEYS.logoUrl, getDefaultLogoSettings().url),
-                size: logoSizeInput?.value || safeStorageGet(STORAGE_KEYS.logoSize, String(getDefaultLogoSettings().size)),
-                animation: logoAnimationSelect?.value || safeStorageGet(STORAGE_KEYS.logoAnimation, getDefaultLogoSettings().animation)
-            }),
+            logo: getStoredBrandLogoSettings(),
             widget: {
                 label: (widgetLabelInput?.value || safeStorageGet(STORAGE_KEYS.launcherLabel, 'Chat with Cherry') || 'Chat with Cherry').trim(),
                 subtext: (widgetSubtextInput?.value || safeStorageGet(STORAGE_KEYS.launcherSubtext, 'We typically reply in minutes') || 'We typically reply in minutes').trim(),
@@ -1678,14 +1683,23 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        if (!isValidAvatarUrl((logoUrlInput?.value || safeStorageGet(STORAGE_KEYS.logoUrl, getDefaultLogoSettings().url)).trim())) {
+        const brandLogoForSave = getSelectedLogoTarget() === 'brand'
+            ? sanitizeLogoSettings({
+                url: logoUrlInput?.value || '',
+                size: logoSizeInput?.value || '',
+                animation: logoAnimationSelect?.value || ''
+            })
+            : getStoredBrandLogoSettings();
+        if (!isValidAvatarUrl((brandLogoForSave.url || '').trim())) {
             showDeployStatus('Project save blocked: fix the logo URL field first.', 100, 'error');
             return;
         }
 
         saveFooterSettings();
         saveHeaderSettings();
-        saveLogoSettings();
+        if (getSelectedLogoTarget() === 'brand') {
+            saveLogoSettings();
+        }
         saveWidgetSettings();
         saveWebhookSettings();
         persistQuestionnaire();
@@ -1809,7 +1823,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (logoUrlInput) logoUrlInput.value = logoSettings.url;
         if (logoSizeInput) logoSizeInput.value = String(logoSettings.size);
         if (logoAnimationSelect) logoAnimationSelect.value = logoSettings.animation;
-        saveLogoSettings();
+        persistBrandLogoSettings(logoSettings);
 
         const widgetSettings = snapshot?.widget || {};
         if (widgetLabelInput) widgetLabelInput.value = widgetSettings.label || 'Chat with Cherry';
