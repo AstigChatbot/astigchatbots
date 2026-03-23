@@ -30,6 +30,7 @@
   if (!mountTarget) return;
 
   const widget = project?.widget || {};
+  const isTransparentTheme = project?.theme?.style === 'transparent';
   const label = (script.dataset.label || widget.label || 'Chat with Cherry').trim();
   const subtext = (script.dataset.subtext || widget.subtext || 'We typically reply in minutes').trim();
   const iconUrl = (script.dataset.iconUrl || widget.icon || '').trim();
@@ -51,7 +52,7 @@
   panel.style.bottom = targetId ? '0' : '104px';
   panel.style.width = 'min(420px, calc(100vw - 24px))';
   panel.style.height = 'min(760px, calc(100vh - 132px))';
-  panel.style.borderRadius = '24px';
+  panel.style.borderRadius = isTransparentTheme ? '0' : '24px';
   panel.style.overflow = 'hidden';
   panel.style.background = 'transparent';
   panel.style.border = '0';
