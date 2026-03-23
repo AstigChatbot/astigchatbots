@@ -2326,6 +2326,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const extractedReply = extractBotReply(data);
             if (extractedReply) {
                 botReply = extractedReply;
+            } else if (typeof responseText === 'string' && responseText.trim()) {
+                const trimmedResponse = responseText.trim();
+                if (trimmedResponse && trimmedResponse !== '{}' && trimmedResponse !== '[]') {
+                    botReply = trimmedResponse;
+                }
+            } else if (data && typeof data === 'object') {
+                const serialized = JSON.stringify(data);
+                if (serialized && serialized !== '{}' && serialized !== '[]') {
+                    botReply = serialized;
+                }
             }
 
             if (!response.ok) {
