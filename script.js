@@ -2298,14 +2298,41 @@ document.addEventListener('DOMContentLoaded', () => {
             const activeMode = safeStorageGet(STORAGE_KEYS.webhookActive, 'prod') || 'prod';
             setActiveWebhook(activeMode, false);
             console.log("Submitting to:", currentWebhookUrl); // Debug log
+            const collectedFields = Object.fromEntries(
+                Object.entries(formData).filter(([key, value]) =>
+                    key !== 'sessionId' &&
+                    typeof value === 'string' &&
+                    value.trim()
+                )
+            );
+            const findFieldValue = (patterns) => {
+                for (const [key, value] of Object.entries(collectedFields)) {
+                    if (patterns.some(pattern => pattern.test(key))) {
+                        return value;
+                    }
+                }
+                return '';
+            };
+            const normalizedEmail = formData.email || findFieldValue([/email/i]);
+            const firstName = findFieldValue([/first[\s_-]*name/i]);
+            const lastName = findFieldValue([/last[\s_-]*name/i]);
+            const genericName = formData.name || findFieldValue([/^name$/i, /full[\s_-]*name/i]);
+            const normalizedName = genericName || [firstName, lastName].filter(Boolean).join(' ').trim();
+            const normalizedInquiry = formData.inquiry || findFieldValue([/inquiry/i, /message/i, /details/i, /reason/i, /topic/i, /subject/i]);
+            const fallbackChatInput = normalizedInquiry
+                || Object.entries(collectedFields).map(([key, value]) => `${key}: ${value}`).join('\n')
+                || normalizedEmail
+                || normalizedName
+                || '';
             const payload = {
                 ...formData,
                 action: 'sendMessage',
-                chatInput: formData.inquiry || formData.email || formData.name || '',
+                chatInput: fallbackChatInput,
                 metadata: {
-                    name: formData.name || '',
-                    email: formData.email || '',
-                    inquiry: formData.inquiry || ''
+                    name: normalizedName || '',
+                    email: normalizedEmail || '',
+                    inquiry: normalizedInquiry || '',
+                    fields: collectedFields
                 }
             };
             const response = await fetch(currentWebhookUrl, {
