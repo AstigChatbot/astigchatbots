@@ -24,7 +24,7 @@
   }
 
   const project = decodeProject(script.dataset.project || '');
-  const appUrl = normalizeUrl(script.dataset.appUrl || 'index.html', script.src);
+  const appUrl = normalizeUrl(script.dataset.appUrl || 'embed.html', script.src);
   const targetId = (script.dataset.target || '').trim();
   const mountTarget = targetId ? document.getElementById(targetId) : document.body;
   if (!mountTarget) return;
@@ -124,40 +124,16 @@
   let isOpen = false;
   let frameLoaded = false;
 
-  const embeddedBootStyle = [
-    'html,body{margin:0!important;padding:0!important;width:100%!important;height:100%!important;overflow:hidden!important;background:#0f172a!important;background-color:#0f172a!important;}',
-    'body{display:block!important;visibility:visible!important;justify-content:flex-start!important;align-items:stretch!important;}',
-    '.app-logo,.background-globes,.floating-menu,.avatar-panel,.drawer-overlay,.project-name-modal,#chat-launcher,.character-section{display:none!important;}',
-    '.main-container{display:block!important;width:100%!important;max-width:none!important;height:100vh!important;min-height:100vh!important;margin:0!important;}',
-    '.form-interface{width:100%!important;max-width:none!important;height:100vh!important;min-height:100vh!important;margin:0!important;border-radius:0!important;}'
-  ].concat(
-    isTransparentTheme
-      ? [
-          '.form-interface{background:transparent!important;border:0!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;}',
-          '.conversation-flow{background:transparent!important;}'
-        ]
-      : []
-  ).join('');
-
   function postConfig() {
     if (!project || !frame.contentWindow) return;
     frame.contentWindow.postMessage({ type: 'CHERRY_EMBED_CONFIG', snapshot: project }, '*');
   }
 
   async function ensureFrame() {
-    if (frame.srcdoc || frame.src) return;
+    if (frame.src) return;
     const url = new URL(appUrl, window.location.href);
     try {
-      const response = await fetch(url.toString(), { cache: 'no-store' });
-      if (!response.ok) {
-        throw new Error(`Failed to load app HTML: ${response.status}`);
-      }
-      const html = await response.text();
-      const baseHref = url.toString().replace(/[^/]*$/, '');
-      const withEmbedFlag = html
-        .replace(/<html([^>]*)>/i, '<html$1 data-cherry-embed>')
-        .replace(/<head([^>]*)>/i, `<head$1><base href="${baseHref}"><style>${embeddedBootStyle}</style>`);
-      frame.srcdoc = withEmbedFlag;
+      frame.src = url.toString();
       frame.addEventListener('load', () => {
         frameLoaded = true;
         try {
@@ -167,7 +143,7 @@
         setTimeout(postConfig, 150);
       }, { once: true });
     } catch (error) {
-      console.error('Cherry embed failed to load app HTML.', error);
+      console.error('Cherry embed failed to load app.', error);
     }
   }
 
