@@ -129,6 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const videoStatus = document.getElementById('video-status');
     const headerVideo = document.getElementById('header-video');
     const headerVideoPlayer = document.getElementById('header-video-player');
+    const webhookDebug = document.getElementById('webhook-debug');
     const projectNameOverlay = document.getElementById('project-name-overlay');
     const projectNameModal = document.getElementById('project-name-modal');
     const projectNameInput = document.getElementById('project-name-input');
@@ -3217,6 +3218,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function updateWebhookDebug(mode, url) {
+        if (!webhookDebug) return;
+        const safeMode = (mode || safeStorageGet(STORAGE_KEYS.webhookActive, 'prod') || 'prod').toUpperCase();
+        const safeUrl = url || currentWebhookUrl || '';
+        webhookDebug.textContent = `Webhook: ${safeMode} - ${safeUrl}`;
+    }
+
     function setActiveWebhook(mode, persist = true) {
         const prod = webhookProdInput?.value?.trim() || safeStorageGet(STORAGE_KEYS.webhookProd, WEBHOOK_URL_PROD) || WEBHOOK_URL_PROD;
         const test = webhookTestInput?.value?.trim() || safeStorageGet(STORAGE_KEYS.webhookTest, WEBHOOK_URL_TEST) || WEBHOOK_URL_TEST;
@@ -3244,6 +3252,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         updateWebhookStatus(`Active: ${mode.toUpperCase()}`);
+        updateWebhookDebug(mode, currentWebhookUrl);
     }
 
     function updateWebhookStatus(message, tone = 'success') {
