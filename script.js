@@ -24,6 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const widgetBtn = document.querySelector('.left-menu .menu-btn.widget');
     const footerBtn = document.getElementById('footer-menu-btn');
     const logoBtn = document.getElementById('logo-menu-btn');
+    const videoBtn = document.getElementById('video-menu-btn');
     const headerBtn = document.getElementById('header-menu-btn');
     const widgetDrawer = document.getElementById('widget-drawer');
     const widgetOverlay = document.getElementById('widget-overlay');
@@ -119,6 +120,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const brandLogoWrap = document.getElementById('brand-logo-wrap');
     const brandLogoImg = document.getElementById('brand-logo-img');
     const logoPreviewImg = document.getElementById('logo-preview-img');
+    const videoDrawer = document.getElementById('video-drawer');
+    const videoOverlay = document.getElementById('video-overlay');
+    const videoClose = document.getElementById('video-close');
+    const videoEnabledInput = document.getElementById('video-enabled');
+    const videoUrlInput = document.getElementById('video-url');
+    const saveVideoSettingsBtn = document.getElementById('save-video-settings');
+    const videoStatus = document.getElementById('video-status');
+    const headerVideo = document.getElementById('header-video');
+    const headerVideoPlayer = document.getElementById('header-video-player');
     const projectNameOverlay = document.getElementById('project-name-overlay');
     const projectNameModal = document.getElementById('project-name-modal');
     const projectNameInput = document.getElementById('project-name-input');
@@ -232,6 +242,8 @@ document.addEventListener('DOMContentLoaded', () => {
         logoAnimation: 'cherry.logo.animation',
         logoTarget: 'cherry.logo.target',
         logoPreset: 'cherry.logo.preset',
+        videoEnabled: 'cherry.video.enabled',
+        videoUrl: 'cherry.video.url',
         projectSnapshot: 'cherry.project.snapshot'
     };
 
@@ -381,6 +393,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (logoBtn) {
         logoBtn.addEventListener('click', () => openLogoDrawer(true));
     }
+    if (videoBtn) {
+        videoBtn.addEventListener('click', () => openVideoDrawer(true));
+    }
     if (widgetOverlay) {
         widgetOverlay.addEventListener('click', () => openWidgetDrawer(false));
     }
@@ -488,6 +503,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (saveLogoSettingsBtn) {
         saveLogoSettingsBtn.addEventListener('click', saveLogoSettings);
+    }
+    if (videoOverlay) {
+        videoOverlay.addEventListener('click', () => openVideoDrawer(false));
+    }
+    if (videoClose) {
+        videoClose.addEventListener('click', () => openVideoDrawer(false));
+    }
+    if (saveVideoSettingsBtn) {
+        saveVideoSettingsBtn.addEventListener('click', saveVideoSettings);
+    }
+    if (videoUrlInput) {
+        videoUrlInput.addEventListener('input', previewVideoSettings);
+    }
+    if (videoEnabledInput) {
+        videoEnabledInput.addEventListener('change', previewVideoSettings);
     }
     if (logoTargetSelect) {
         logoTargetSelect.addEventListener('change', handleLogoTargetChange);
@@ -601,6 +631,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (footerDrawer?.classList.contains('open')) openFooterDrawer(false);
             if (logoDrawer?.classList.contains('open')) openLogoDrawer(false);
             if (headerDrawer?.classList.contains('open')) openHeaderDrawer(false);
+            if (videoDrawer?.classList.contains('open')) openVideoDrawer(false);
             if (projectNameModal?.classList.contains('open')) closeProjectNamePrompt(null);
             if (openProjectModal?.classList.contains('open')) closeOpenProjectPrompt(null);
             if (avatarPanel?.classList.contains('open')) toggleAvatarPanel(false);
@@ -1105,6 +1136,92 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
+    function getDefaultVideoSettings() {
+        return {
+            enabled: true,
+            url: ''
+        };
+    }
+
+    function sanitizeVideoSettings(candidate = {}) {
+        return {
+            enabled: candidate?.enabled !== false,
+            url: String(candidate?.url || '').trim()
+        };
+    }
+
+    function setVideoStatus(text, type = 'info') {
+        if (!videoStatus) return;
+        videoStatus.textContent = text;
+        videoStatus.classList.remove('success', 'error');
+        if (type === 'success' || type === 'error') {
+            videoStatus.classList.add(type);
+        }
+    }
+
+    function applyVideoSettings(settings) {
+        const nextSettings = sanitizeVideoSettings(settings);
+        if (!headerVideo || !headerVideoPlayer) return;
+        const hasUrl = nextSettings.enabled && !!nextSettings.url && isValidHttpUrl(nextSettings.url);
+        headerVideo.hidden = !hasUrl;
+        headerVideoPlayer.muted = true;
+        headerVideoPlayer.loop = true;
+        headerVideoPlayer.autoplay = true;
+        headerVideoPlayer.playsInline = true;
+        headerVideoPlayer.controls = false;
+        if (hasUrl) {
+            headerVideoPlayer.src = nextSettings.url;
+            const playPromise = headerVideoPlayer.play?.();
+            if (playPromise?.catch) {
+                playPromise.catch(() => {});
+            }
+        } else {
+            headerVideoPlayer.pause?.();
+            headerVideoPlayer.removeAttribute('src');
+            headerVideoPlayer.load();
+        }
+    }
+
+    function hydrateVideoSettings() {
+        const settings = sanitizeVideoSettings({
+            enabled: safeStorageGet(STORAGE_KEYS.videoEnabled, 'true') !== 'false',
+            url: safeStorageGet(STORAGE_KEYS.videoUrl, getDefaultVideoSettings().url)
+        });
+        if (videoEnabledInput) videoEnabledInput.checked = settings.enabled;
+        if (videoUrlInput) videoUrlInput.value = settings.url;
+        applyVideoSettings(settings);
+    }
+
+    function previewVideoSettings() {
+        const settings = sanitizeVideoSettings({
+            enabled: !!videoEnabledInput?.checked,
+            url: videoUrlInput?.value || ''
+        });
+        if (settings.url && !isValidHttpUrl(settings.url)) {
+            setVideoStatus('Enter a valid video URL starting with http:// or https://', 'error');
+            return false;
+        }
+        applyVideoSettings(settings);
+        setVideoStatus(settings.enabled && settings.url ? 'Video preview updated under the chatbot header.' : 'Video hidden from the chatbot header.', 'success');
+        return true;
+    }
+
+    function saveVideoSettings() {
+        const settings = sanitizeVideoSettings({
+            enabled: !!videoEnabledInput?.checked,
+            url: videoUrlInput?.value || ''
+        });
+        if (settings.url && !isValidHttpUrl(settings.url)) {
+            setVideoStatus('Enter a valid video URL starting with http:// or https://', 'error');
+            return;
+        }
+        safeStorageSet(STORAGE_KEYS.videoEnabled, String(settings.enabled));
+        safeStorageSet(STORAGE_KEYS.videoUrl, settings.url);
+        applyVideoSettings(settings);
+        flashButton(saveVideoSettingsBtn, 'Applied');
+        setVideoStatus(settings.enabled && settings.url ? 'Header video saved to the builder preview.' : 'Header video hidden.', 'success');
+    }
+
     function getDefaultHeaderSettings() {
         return {
             showHome: true,
@@ -1520,6 +1637,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 showDownload: !!headerShowDownloadInput?.checked,
                 showRestart: !!headerShowRestartInput?.checked
             },
+            video: sanitizeVideoSettings({
+                enabled: videoEnabledInput?.checked ?? (safeStorageGet(STORAGE_KEYS.videoEnabled, 'true') !== 'false'),
+                url: videoUrlInput?.value || safeStorageGet(STORAGE_KEYS.videoUrl, getDefaultVideoSettings().url)
+            }),
             logo: getStoredBrandLogoSettings(),
             widget: {
                 label: (widgetLabelInput?.value || safeStorageGet(STORAGE_KEYS.launcherLabel, 'Chat with Cherry') || 'Chat with Cherry').trim(),
@@ -1836,6 +1957,15 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
+        const videoSettings = sanitizeVideoSettings(snapshot?.video || {});
+        if (videoEnabledInput) videoEnabledInput.checked = videoSettings.enabled;
+        if (videoUrlInput) videoUrlInput.value = videoSettings.url;
+        if (videoUrlInput) {
+            saveVideoSettings();
+        } else {
+            applyVideoSettings(videoSettings);
+        }
+
         const logoSettings = sanitizeLogoSettings(snapshot?.logo || {});
         if (logoUrlInput) logoUrlInput.value = logoSettings.url;
         if (logoSizeInput) logoSizeInput.value = String(logoSettings.size);
@@ -1913,6 +2043,7 @@ document.addEventListener('DOMContentLoaded', () => {
     hydrateFooterSettings();
     hydrateThemeSettings();
     hydrateHeaderSettings();
+    hydrateVideoSettings();
     hydrateLogoSettings();
     renderStep();
     updateEmbedDefaults();
@@ -2164,15 +2295,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             console.log("Submitting to:", currentWebhookUrl); // Debug log
+            const payload = {
+                ...formData,
+                action: 'sendMessage',
+                chatInput: formData.inquiry || formData.email || formData.name || '',
+                metadata: {
+                    name: formData.name || '',
+                    email: formData.email || '',
+                    inquiry: formData.inquiry || ''
+                }
+            };
             const response = await fetch(currentWebhookUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(payload)
             });
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
             const responseText = await response.text();
             let data;
             try {
@@ -2201,6 +2339,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else if (typeof data === 'string') {
                     botReply = data;
                 }
+            }
+
+            if (!response.ok) {
+                if (botReply && botReply !== "Thank you for reaching out.") {
+                    stepDiv.innerHTML = `<h2>${botReply}</h2>`;
+                    scrollToBottom();
+                    return;
+                }
+                throw new Error(`HTTP error! status: ${response.status}${responseText ? ` - ${responseText}` : ''}`);
             }
 
             stepDiv.innerHTML = `<h2>${botReply}</h2>`;
@@ -2318,6 +2465,23 @@ document.addEventListener('DOMContentLoaded', () => {
         headerOverlay.classList.toggle('show', show);
         headerDrawer.setAttribute('aria-hidden', show ? 'false' : 'true');
         syncDrawerUiState();
+    }
+
+    function openVideoDrawer(show) {
+        if (!videoDrawer || !videoOverlay) return;
+        videoDrawer.classList.toggle('open', show);
+        videoOverlay.classList.toggle('show', show);
+        videoDrawer.setAttribute('aria-hidden', show ? 'false' : 'true');
+        syncDrawerUiState();
+        if (show) {
+            if (videoEnabledInput) {
+                videoEnabledInput.checked = safeStorageGet(STORAGE_KEYS.videoEnabled, 'true') !== 'false';
+            }
+            if (videoUrlInput) {
+                videoUrlInput.value = safeStorageGet(STORAGE_KEYS.videoUrl, getDefaultVideoSettings().url);
+            }
+            previewVideoSettings();
+        }
     }
 
     function syncDrawerUiState() {
