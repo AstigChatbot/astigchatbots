@@ -1806,18 +1806,35 @@ document.addEventListener('DOMContentLoaded', () => {
         if (footerFontSizeInput) footerFontSizeInput.value = String(footerSettings.fontSize);
         if (footerAnimationSelect) footerAnimationSelect.value = footerSettings.animation;
         if (footerBackgroundInput) footerBackgroundInput.value = footerSettings.background;
-        saveFooterSettings();
+        if (footerBrandTextInput && footerBrandUrlInput && footerFontFamilySelect && footerFontSizeInput && footerAnimationSelect && footerBackgroundInput) {
+            saveFooterSettings();
+        } else {
+            applyFooterSettings(footerSettings);
+        }
 
         const nextThemeSettings = sanitizeThemeSettings(snapshot?.theme || {});
         writeThemeFormSettings(nextThemeSettings);
-        saveThemeSettings();
+        if (themeBackgroundInput && themeStyleButtons.length > 0) {
+            saveThemeSettings();
+        } else {
+            applyThemeSettings(nextThemeSettings);
+        }
 
         const headerSettings = snapshot?.header || getDefaultHeaderSettings();
         if (headerShowHomeInput) headerShowHomeInput.checked = headerSettings.showHome !== false;
         if (headerShowEmailInput) headerShowEmailInput.checked = headerSettings.showEmail !== false;
         if (headerShowDownloadInput) headerShowDownloadInput.checked = headerSettings.showDownload !== false;
         if (headerShowRestartInput) headerShowRestartInput.checked = headerSettings.showRestart !== false;
-        saveHeaderSettings();
+        if (headerShowHomeInput && headerShowEmailInput && headerShowDownloadInput && headerShowRestartInput) {
+            saveHeaderSettings();
+        } else {
+            applyHeaderSettings({
+                showHome: headerSettings.showHome !== false,
+                showEmail: headerSettings.showEmail !== false,
+                showDownload: headerSettings.showDownload !== false,
+                showRestart: headerSettings.showRestart !== false
+            });
+        }
 
         const logoSettings = sanitizeLogoSettings(snapshot?.logo || {});
         if (logoUrlInput) logoUrlInput.value = logoSettings.url;
@@ -1833,14 +1850,28 @@ document.addEventListener('DOMContentLoaded', () => {
         if (widgetShapeSelect) widgetShapeSelect.value = widgetSettings.shape || 'circle';
         if (widgetAnimSelect) widgetAnimSelect.value = widgetSettings.animation || 'none';
         if (widget3dCheckbox) widget3dCheckbox.checked = !!widgetSettings.is3d;
-        saveWidgetSettings();
+        if (widgetLabelInput && widgetSubtextInput && widgetIconInput && widgetIconSizeInput && widgetShapeSelect && widgetAnimSelect && widget3dCheckbox) {
+            saveWidgetSettings();
+        } else {
+            applyLauncher(
+                widgetSettings.label || 'Chat with Cherry',
+                widgetSettings.subtext || 'We typically reply in minutes',
+                widgetSettings.icon || '',
+                widgetSettings.shape || 'circle',
+                widgetSettings.animation || 'none',
+                !!widgetSettings.is3d,
+                String(widgetSettings.iconSize || '26')
+            );
+        }
 
         const webhookSettings = snapshot?.webhook || {};
         if (webhookProdInput) webhookProdInput.value = webhookSettings.prod || WEBHOOK_URL_PROD;
         if (webhookTestInput) webhookTestInput.value = webhookSettings.test || WEBHOOK_URL_TEST;
         if (webhookChatInput) webhookChatInput.value = webhookSettings.chat || '';
-        saveWebhookSettings();
         setActiveWebhook(webhookSettings.active || 'prod');
+        if (webhookProdInput && webhookTestInput && webhookChatInput) {
+            saveWebhookSettings();
+        }
 
         const githubSettings = snapshot?.github || {};
         if (githubUrlInput) githubUrlInput.value = githubSettings.repo || DEFAULT_GITHUB_REPO;
