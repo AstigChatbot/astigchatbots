@@ -2312,8 +2312,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
         try {
-            const activeMode = safeStorageGet(STORAGE_KEYS.webhookActive, 'prod') || 'prod';
-            setActiveWebhook(activeMode, false);
+            const hasWebhookControls = !!(webhookProdInput && webhookTestInput && webhookChatInput);
+            if (hasWebhookControls) {
+                const activeMode = safeStorageGet(STORAGE_KEYS.webhookActive, 'prod') || 'prod';
+                setActiveWebhook(activeMode, false);
+            }
             console.log("Submitting to:", currentWebhookUrl); // Debug log
             const collectedFields = Object.fromEntries(
                 Object.entries(formData).filter(([key, value]) =>
