@@ -2295,6 +2295,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
         try {
+            const activeMode = safeStorageGet(STORAGE_KEYS.webhookActive, 'prod') || 'prod';
+            setActiveWebhook(activeMode, false);
             console.log("Submitting to:", currentWebhookUrl); // Debug log
             const payload = {
                 ...formData,
@@ -2354,7 +2356,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error(error);
-            stepDiv.innerHTML = `<h2>Error: ${error.message}</h2>`;
+            const failedUrl = currentWebhookUrl || '(no webhook url)';
+            stepDiv.innerHTML = `<h2>Error: ${error.message}<br><span style="font-size:0.7em;opacity:0.75;">${failedUrl}</span></h2>`;
         } finally {
             userInput.disabled = false;
             userInput.placeholder = "Type here...";
