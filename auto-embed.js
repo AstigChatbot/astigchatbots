@@ -130,7 +130,14 @@
     '.app-logo,.background-globes,.floating-menu,.avatar-panel,.drawer-overlay,.project-name-modal,#chat-launcher,.character-section{display:none!important;}',
     '.main-container{display:block!important;width:100%!important;max-width:none!important;height:100vh!important;min-height:100vh!important;margin:0!important;}',
     '.form-interface{width:100%!important;max-width:none!important;height:100vh!important;min-height:100vh!important;margin:0!important;border-radius:0!important;}'
-  ].join('');
+  ].concat(
+    isTransparentTheme
+      ? [
+          '.form-interface{background:transparent!important;border:0!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;}',
+          '.conversation-flow{background:transparent!important;}'
+        ]
+      : []
+  ).join('');
 
   function postConfig() {
     if (!project || !frame.contentWindow) return;
