@@ -2776,6 +2776,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function getDeployFiles() {
         return [
             'index.html',
+            'embed.html',
             'styles.css',
             'script.js',
             'embed.js',
