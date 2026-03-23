@@ -2322,23 +2322,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             console.log("Webhook Response:", data); // Debug log
 
-            // Success Message
-            // Check for common n8n response fields: output, text, message, or nested data
             let botReply = "Thank you for reaching out.";
-
-            if (data) {
-                if (data.output) botReply = data.output;
-                else if (data.text) botReply = data.text;
-                else if (data.message) botReply = data.message;
-                else if (Array.isArray(data) && data.length > 0) {
-                    // Sometimes n8n returns an array of items
-                    const firstItem = data[0];
-                    if (firstItem.output) botReply = firstItem.output;
-                    else if (firstItem.text) botReply = firstItem.text;
-                    else if (firstItem.message) botReply = firstItem.message;
-                } else if (typeof data === 'string') {
-                    botReply = data;
-                }
+            const extractedReply = extractBotReply(data);
+            if (extractedReply) {
+                botReply = extractedReply;
             }
 
             if (!response.ok) {
@@ -2364,9 +2351,48 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function extractBotReply(payload) {
+        const visited = new WeakSet();
+        const candidateKeys = ['output', 'text', 'message', 'reply', 'response', 'content', 'answer'];
 
+        function walk(value) {
+            if (typeof value === 'string') {
+                const trimmed = value.trim();
+                return trimmed || '';
+            }
+            if (!value || typeof value !== 'object') {
+                return '';
+            }
+            if (visited.has(value)) {
+                return '';
+            }
+            visited.add(value);
 
+            if (Array.isArray(value)) {
+                for (const item of value) {
+                    const found = walk(item);
+                    if (found) return found;
+                }
+                return '';
+            }
 
+            for (const key of candidateKeys) {
+                const direct = value[key];
+                if (typeof direct === 'string' && direct.trim()) {
+                    return direct.trim();
+                }
+            }
+
+            for (const nested of Object.values(value)) {
+                const found = walk(nested);
+                if (found) return found;
+            }
+
+            return '';
+        }
+
+        return walk(payload);
+    }
 
     function scrollToBottom() {
         // Use timeout to ensure DOM has updated
