@@ -108,6 +108,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const logoDrawer = document.getElementById('logo-drawer');
     const logoOverlay = document.getElementById('logo-overlay');
     const logoClose = document.getElementById('logo-close');
+    const logoTargetSelect = document.getElementById('logo-target');
+    const logoPresetSelect = document.getElementById('logo-preset');
     const logoUrlInput = document.getElementById('logo-url');
     const logoSizeInput = document.getElementById('logo-size');
     const logoAnimationSelect = document.getElementById('logo-animation');
@@ -180,6 +182,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const CURRENT_EMBED_COMMIT = '1682f3d';
     const DEFAULT_EMBED_RUNTIME_BASE = `https://cdn.jsdelivr.net/gh/AstigChatbot/astigchatbots@${CURRENT_EMBED_COMMIT}`;
     const DEFAULT_EMBED_APP_BASE = `https://cdn.jsdelivr.net/gh/AstigChatbot/astigchatbots@${CURRENT_EMBED_COMMIT}`;
+    const LOGO_PRESETS = {
+        brand: 'https://widjets.astigmedia.com/img/main-logo.png',
+        assistant: 'https://widjets.astigmedia.com/img/Assistant-logo.png',
+        user: 'https://widjets.astigmedia.com/img/User-logo.png',
+        launcher: 'https://widjets.astigmedia.com/img/Launcher-Logo.png'
+    };
     let currentWebhookUrl = WEBHOOK_URL_PROD;
 
     const STORAGE_KEYS = {
@@ -222,6 +230,8 @@ document.addEventListener('DOMContentLoaded', () => {
         logoUrl: 'cherry.logo.url',
         logoSize: 'cherry.logo.size',
         logoAnimation: 'cherry.logo.animation',
+        logoTarget: 'cherry.logo.target',
+        logoPreset: 'cherry.logo.preset',
         projectSnapshot: 'cherry.project.snapshot'
     };
 
@@ -478,6 +488,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (saveLogoSettingsBtn) {
         saveLogoSettingsBtn.addEventListener('click', saveLogoSettings);
+    }
+    if (logoTargetSelect) {
+        logoTargetSelect.addEventListener('change', handleLogoTargetChange);
+    }
+    if (logoPresetSelect) {
+        logoPresetSelect.addEventListener('change', handleLogoPresetChange);
     }
     [logoUrlInput, logoSizeInput, logoAnimationSelect].forEach(input => {
         if (input) {
@@ -1247,6 +1263,57 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
+    function getSelectedLogoTarget() {
+        const value = String(logoTargetSelect?.value || safeStorageGet(STORAGE_KEYS.logoTarget, 'brand')).trim();
+        return ['brand', 'assistant', 'user', 'launcher'].includes(value) ? value : 'brand';
+    }
+
+    function getCurrentLogoUrlForTarget(target) {
+        if (target === 'assistant') {
+            return assistantAvatarUrlInput?.value || avatarSettings.assistant?.url || LOGO_PRESETS.assistant;
+        }
+        if (target === 'user') {
+            return userAvatarUrlInput?.value || avatarSettings.user?.url || LOGO_PRESETS.user;
+        }
+        if (target === 'launcher') {
+            return widgetIconInput?.value || safeStorageGet(STORAGE_KEYS.launcherIcon, '') || LOGO_PRESETS.launcher;
+        }
+        return logoUrlInput?.value || safeStorageGet(STORAGE_KEYS.logoUrl, getDefaultLogoSettings().url) || getDefaultLogoSettings().url;
+    }
+
+    function syncLogoPresetSelection(url) {
+        if (!logoPresetSelect) return;
+        const match = Object.values(LOGO_PRESETS).find(presetUrl => presetUrl === url) || '';
+        logoPresetSelect.value = match;
+    }
+
+    function syncLogoDrawerToTarget(target = getSelectedLogoTarget()) {
+        if (logoTargetSelect) {
+            logoTargetSelect.value = target;
+        }
+        if (logoUrlInput) {
+            logoUrlInput.value = getCurrentLogoUrlForTarget(target);
+        }
+        syncLogoPresetSelection(logoUrlInput?.value || '');
+        previewLogoSettings();
+    }
+
+    function handleLogoTargetChange() {
+        const target = getSelectedLogoTarget();
+        safeStorageSet(STORAGE_KEYS.logoTarget, target);
+        syncLogoDrawerToTarget(target);
+        setLogoStatus(`Editing ${target} logo. Apply to save it to the matching preview element.`, 'success');
+    }
+
+    function handleLogoPresetChange() {
+        const presetUrl = String(logoPresetSelect?.value || '').trim();
+        safeStorageSet(STORAGE_KEYS.logoPreset, presetUrl);
+        if (presetUrl && logoUrlInput) {
+            logoUrlInput.value = presetUrl;
+        }
+        previewLogoSettings();
+    }
+
     function sanitizeLogoSettings(candidate = {}) {
         const defaults = getDefaultLogoSettings();
         const size = Number.parseInt(candidate?.size, 10);
@@ -1295,7 +1362,40 @@ document.addEventListener('DOMContentLoaded', () => {
         document.documentElement.style.setProperty('--brand-logo-size', `${settings.size}px`);
     }
 
+    function previewLogoTarget(target, url) {
+        if (!url) return;
+        if (target === 'assistant') {
+            if (assistantAvatarUrlInput) assistantAvatarUrlInput.value = url;
+            updateAvatarPreview('assistant');
+            return;
+        }
+        if (target === 'user') {
+            if (userAvatarUrlInput) userAvatarUrlInput.value = url;
+            updateAvatarPreview('user');
+            return;
+        }
+        if (target === 'launcher') {
+            if (widgetIconInput) widgetIconInput.value = url;
+            applyLauncher(
+                (widgetLabelInput?.value || safeStorageGet(STORAGE_KEYS.launcherLabel, 'Chat with Cherry') || 'Chat with Cherry').trim(),
+                (widgetSubtextInput?.value || safeStorageGet(STORAGE_KEYS.launcherSubtext, 'We typically reply in minutes') || 'We typically reply in minutes').trim(),
+                url,
+                widgetShapeSelect?.value || safeStorageGet(STORAGE_KEYS.launcherShape, 'circle') || 'circle',
+                widgetAnimSelect?.value || safeStorageGet(STORAGE_KEYS.launcherAnim, 'none') || 'none',
+                !!(widget3dCheckbox?.checked ?? (safeStorageGet(STORAGE_KEYS.launcher3d, 'false') === 'true')),
+                (widgetIconSizeInput?.value || safeStorageGet(STORAGE_KEYS.launcherIconSize, '26') || '26').trim()
+            );
+            return;
+        }
+        applyLogoSettings(sanitizeLogoSettings({
+            url,
+            size: logoSizeInput?.value || safeStorageGet(STORAGE_KEYS.logoSize, String(getDefaultLogoSettings().size)),
+            animation: logoAnimationSelect?.value || safeStorageGet(STORAGE_KEYS.logoAnimation, getDefaultLogoSettings().animation)
+        }));
+    }
+
     function previewLogoSettings() {
+        const target = getSelectedLogoTarget();
         const settings = sanitizeLogoSettings({
             url: logoUrlInput?.value || '',
             size: logoSizeInput?.value || '',
@@ -1307,8 +1407,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return false;
         }
 
-        applyLogoSettings(settings);
-        setLogoStatus('Logo preview ready. Press Apply logo to save it.', 'success');
+        previewLogoTarget(target, settings.url);
+        syncLogoPresetSelection(settings.url);
+        setLogoStatus(`Preview ready for the ${target} logo. Press Apply logo to save it.`, 'success');
         return true;
     }
 
@@ -1323,9 +1424,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (logoSizeInput) logoSizeInput.value = String(settings.size);
         if (logoAnimationSelect) logoAnimationSelect.value = settings.animation;
         applyLogoSettings(settings);
+        if (logoTargetSelect) {
+            logoTargetSelect.value = getSelectedLogoTarget();
+        }
+        const storedPreset = safeStorageGet(STORAGE_KEYS.logoPreset, '');
+        if (logoPresetSelect) {
+            logoPresetSelect.value = storedPreset;
+        }
+        syncLogoDrawerToTarget(getSelectedLogoTarget());
     }
 
     function saveLogoSettings() {
+        const target = getSelectedLogoTarget();
         const settings = sanitizeLogoSettings({
             url: logoUrlInput?.value || '',
             size: logoSizeInput?.value || '',
@@ -1337,12 +1447,39 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        safeStorageSet(STORAGE_KEYS.logoUrl, settings.url);
-        safeStorageSet(STORAGE_KEYS.logoSize, String(settings.size));
-        safeStorageSet(STORAGE_KEYS.logoAnimation, settings.animation);
-        applyLogoSettings(settings);
+        safeStorageSet(STORAGE_KEYS.logoTarget, target);
+        safeStorageSet(STORAGE_KEYS.logoPreset, logoPresetSelect?.value || '');
+        if (target === 'assistant') {
+            avatarSettings.assistant = sanitizeAvatarSettings('assistant', {
+                ...readAvatarFormSettings('assistant'),
+                url: settings.url
+            });
+            writeAvatarFormSettings('assistant', avatarSettings.assistant);
+            persistAvatarSettings();
+            updateAvatarPreview('assistant');
+            applyAvatarCssVars();
+            refreshRenderedAvatars();
+        } else if (target === 'user') {
+            avatarSettings.user = sanitizeAvatarSettings('user', {
+                ...readAvatarFormSettings('user'),
+                url: settings.url
+            });
+            writeAvatarFormSettings('user', avatarSettings.user);
+            persistAvatarSettings();
+            updateAvatarPreview('user');
+            applyAvatarCssVars();
+            refreshRenderedAvatars();
+        } else if (target === 'launcher') {
+            if (widgetIconInput) widgetIconInput.value = settings.url;
+            saveWidgetSettings();
+        } else {
+            safeStorageSet(STORAGE_KEYS.logoUrl, settings.url);
+            safeStorageSet(STORAGE_KEYS.logoSize, String(settings.size));
+            safeStorageSet(STORAGE_KEYS.logoAnimation, settings.animation);
+            applyLogoSettings(settings);
+        }
         flashButton(saveLogoSettingsBtn, 'Applied');
-        setLogoStatus('Logo updated in the header and corner preview.', 'success');
+        setLogoStatus(`${target.charAt(0).toUpperCase() + target.slice(1)} logo updated in the preview and saved for export.`, 'success');
     }
 
     function getProjectSnapshot() {
@@ -2126,7 +2263,7 @@ document.addEventListener('DOMContentLoaded', () => {
         logoDrawer.setAttribute('aria-hidden', show ? 'false' : 'true');
         syncDrawerUiState();
         if (show) {
-            previewLogoSettings();
+            syncLogoDrawerToTarget(getSelectedLogoTarget());
         }
     }
 
