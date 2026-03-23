@@ -182,4 +182,7 @@
   root.appendChild(panel);
   root.appendChild(launcher);
   mountTarget.appendChild(root);
+
+  // Preload the iframe once the launcher is mounted so the first click only opens it.
+  ensureFrame();
 })();
