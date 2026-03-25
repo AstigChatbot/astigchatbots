@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=2">
+    <link rel="stylesheet" href="styles.css?v=3">
 </head>
 <body>
     <main class="main-container">
@@ -17,8 +17,11 @@
                     <div class="brand-logo-wrap" id="brand-logo-wrap" aria-hidden="true">
                         <img src="assets/cherry-logo.png" alt="Brand logo" class="brand-logo-img" id="brand-logo-img">
                     </div>
-                    <div class="status-dot"></div>
-                    <h1>Cherry</h1>
+                    <div class="status-dot" id="header-status-dot"></div>
+                    <div class="brand-copy">
+                        <h1 id="header-title">Cherry</h1>
+                        <p class="brand-subtitle" id="header-subtitle" hidden></p>
+                    </div>
                 </div>
                 <div class="header-actions" id="header-actions">
                     <a href="https://deejayedson.com/" class="settings-btn" id="home-btn" aria-label="Home">
@@ -80,6 +83,6 @@
         </button>
     </main>
 
-    <script src="script.js"></script>
+    <script src="script.js?v=3"></script>
 </body>
 </html>
