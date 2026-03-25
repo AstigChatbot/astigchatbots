@@ -2282,6 +2282,35 @@ document.addEventListener('DOMContentLoaded', () => {
         return questionnaireSettings.animation === 'fast' ? 18 : 40;
     }
 
+    function escapeHtml(value) {
+        return String(value || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function formatBotReply(reply) {
+        const normalized = String(reply || '').replace(/\r\n?/g, '\n').trim();
+        if (!normalized) return '';
+
+        const bulletReady = normalized
+            .replace(/\s+(?=(Confirmation Code:|Status:|Registered At:|Event:|Email:|Phone:|Date:|Time:))/gi, '\n')
+            .replace(/\s+(?=(A confirmation email\b))/i, '\n');
+
+        const lines = bulletReady
+            .split(/\n+/)
+            .map(line => line.replace(/^[\p{Extended_Pictographic}\p{Emoji_Presentation}\p{Emoji}\s]+/gu, '').trim())
+            .filter(Boolean);
+
+        if (lines.length <= 1) {
+            return escapeHtml(normalized).replace(/\n/g, '<br>');
+        }
+
+        return lines.map(line => `&bull; ${escapeHtml(line)}`).join('<br>');
+    }
+
     function focusPrimaryResponseInput() {
         if (isSplitNameStep()) {
             const firstNameInput = flowContainer.querySelector('.message-wrapper:last-child [data-name-part="first"]');
@@ -2565,14 +2594,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!response.ok) {
                 if (botReply && botReply !== "Thank you for reaching out.") {
-                    stepDiv.innerHTML = `<h2>${botReply}</h2>`;
+                    stepDiv.innerHTML = `<h2>${formatBotReply(botReply)}</h2>`;
                     scrollToBottom();
                     return;
                 }
                 throw new Error(`HTTP error! status: ${response.status}${responseText ? ` - ${responseText}` : ''}`);
             }
 
-            stepDiv.innerHTML = `<h2>${botReply}</h2>`;
+            stepDiv.innerHTML = `<h2>${formatBotReply(botReply)}</h2>`;
             scrollToBottom(); // Scroll to show bot response
 
 
