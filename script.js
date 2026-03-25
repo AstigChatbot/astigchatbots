@@ -7,6 +7,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const flowContainer = document.getElementById('conversation-flow');
     const userInput = document.getElementById('user-input');
     const sendBtn = document.getElementById('send-btn');
+    const inputArea = document.querySelector('.input-area');
+    const inputWrapper = document.querySelector('.input-wrapper');
     const restartBtn = document.getElementById('restart-btn');
     const downloadBtn = document.getElementById('download-btn');
     const emailBtn = document.getElementById('email-btn');
@@ -129,7 +131,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const videoStatus = document.getElementById('video-status');
     const headerVideo = document.getElementById('header-video');
     const headerVideoPlayer = document.getElementById('header-video-player');
-    const webhookDebug = document.getElementById('webhook-debug');
     const projectNameOverlay = document.getElementById('project-name-overlay');
     const projectNameModal = document.getElementById('project-name-modal');
     const projectNameInput = document.getElementById('project-name-input');
@@ -658,6 +659,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const formData = {
         sessionId: generateSessionId(),
         name: '',
+        firstName: '',
+        lastName: '',
         email: '',
         inquiry: ''
     };
@@ -2089,6 +2092,75 @@ document.addEventListener('DOMContentLoaded', () => {
         return stepDiv; // Return the content div for manipulation
     }
 
+    function isSplitNameStep() {
+        return currentStep === 0 && steps[currentStep]?.field === 'name';
+    }
+
+    function setPrimaryInputMode(mode) {
+        const showInlineNameForm = mode === 'split-name';
+        if (inputWrapper) inputWrapper.hidden = showInlineNameForm;
+        if (inputArea) inputArea.classList.toggle('input-area--inline-mode', showInlineNameForm);
+        if (sendBtn) sendBtn.textContent = showInlineNameForm ? 'Continue' : 'Submit';
+    }
+
+    function renderSplitNameFields(stepDiv) {
+        const fieldGroup = document.createElement('div');
+        fieldGroup.className = 'split-name-fields';
+        fieldGroup.innerHTML = `
+            <div class="split-name-fields__grid">
+                <label class="split-name-fields__item">
+                    <span>First name</span>
+                    <input type="text" class="split-name-input" data-name-part="first" placeholder="First name" autocomplete="given-name">
+                </label>
+                <label class="split-name-fields__item">
+                    <span>Last name</span>
+                    <input type="text" class="split-name-input" data-name-part="last" placeholder="Last name" autocomplete="family-name">
+                </label>
+            </div>
+        `;
+        stepDiv.appendChild(fieldGroup);
+
+        const firstNameInput = fieldGroup.querySelector('[data-name-part="first"]');
+        const lastNameInput = fieldGroup.querySelector('[data-name-part="last"]');
+        if (firstNameInput) firstNameInput.value = formData.firstName || '';
+        if (lastNameInput) lastNameInput.value = formData.lastName || '';
+
+        fieldGroup.querySelectorAll('.split-name-input').forEach(input => {
+            input.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    handleNext();
+                }
+            });
+            input.addEventListener('input', () => {
+                input.classList.remove('split-name-input--error');
+            });
+        });
+
+        firstNameInput?.focus();
+    }
+
+    function readSplitNameStepValue() {
+        const activeStep = flowContainer.querySelector('.message-wrapper:last-child .current-step');
+        const firstNameInput = activeStep?.querySelector('[data-name-part="first"]');
+        const lastNameInput = activeStep?.querySelector('[data-name-part="last"]');
+        const firstName = firstNameInput?.value.trim() || '';
+        const lastName = lastNameInput?.value.trim() || '';
+        const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
+
+        [firstNameInput, lastNameInput].forEach(input => {
+            if (!input) return;
+            const isBlank = !input.value.trim();
+            input.classList.toggle('split-name-input--error', isBlank);
+        });
+
+        if (!firstName || !lastName) {
+            return null;
+        }
+
+        return { firstName, lastName, fullName };
+    }
+
     function renderStep() {
         // Clear previous 'current-step' classes but keep history
         archiveCurrentStep();
@@ -2112,12 +2184,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            userInput.placeholder = stepData.placeholder;
-            userInput.value = '';
-            userInput.focus();
-            userInput.disabled = false;
+            if (isSplitNameStep()) {
+                setPrimaryInputMode('split-name');
+                renderSplitNameFields(stepDiv);
+                userInput.value = '';
+                userInput.disabled = true;
+            } else {
+                setPrimaryInputMode('default');
+                userInput.placeholder = stepData.placeholder;
+                userInput.value = '';
+                userInput.focus();
+                userInput.disabled = false;
+            }
         } else {
             // Submission Step
+            setPrimaryInputMode('default');
             submitForm();
         }
 
@@ -2213,7 +2294,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function handleNext() {
-        const text = userInput.value.trim();
+        let text = userInput.value.trim();
+        let splitNameValues = null;
+
+        if (currentStep < steps.length && isSplitNameStep()) {
+            splitNameValues = readSplitNameStepValue();
+            if (!splitNameValues) return;
+            text = splitNameValues.fullName;
+        }
+
         if (!text) return;
 
         // Show Answer visually
@@ -2244,6 +2333,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // Save Data for wizard steps
             const currentField = steps[currentStep].field;
             formData[currentField] = text;
+            if (splitNameValues) {
+                formData.firstName = splitNameValues.firstName;
+                formData.lastName = splitNameValues.lastName;
+            }
 
             currentStep++;
             userInput.value = '';
@@ -2467,9 +2560,12 @@ document.addEventListener('DOMContentLoaded', () => {
         isAskingForEmail = false;
         formData.sessionId = generateSessionId();
         formData.name = '';
+        formData.firstName = '';
+        formData.lastName = '';
         formData.email = '';
         formData.inquiry = '';
         flowContainer.innerHTML = '';
+        setPrimaryInputMode('default');
         userInput.disabled = false;
         userInput.placeholder = "Type here...";
         renderStep();
@@ -2582,6 +2678,7 @@ document.addEventListener('DOMContentLoaded', () => {
             footerDrawer?.classList.contains('open') ||
             logoDrawer?.classList.contains('open') ||
             headerDrawer?.classList.contains('open') ||
+            videoDrawer?.classList.contains('open') ||
             avatarPanel?.classList.contains('open');
 
         document.body.classList.toggle('drawer-panel-open', !!anyDrawerOpen);
@@ -3107,13 +3204,146 @@ document.addEventListener('DOMContentLoaded', () => {
         return encodeBytesToBase64(new TextEncoder().encode(text));
     }
 
-    async function fetchFileContentBase64(file) {
-        const url = new URL(file, window.location.href).href;
-        const res = await fetch(url, { cache: 'no-cache' });
-        if (!res.ok) {
-            throw new Error(`could not read ${file}`);
+    let deployManifestCache = null;
+
+    function getDeployManifest() {
+        if (deployManifestCache) return deployManifestCache;
+        const manifestEl = document.getElementById('deploy-manifest');
+        if (!manifestEl?.textContent) {
+            deployManifestCache = {};
+            return deployManifestCache;
         }
-        return encodeBytesToBase64(new Uint8Array(await res.arrayBuffer()));
+        try {
+            deployManifestCache = JSON.parse(manifestEl.textContent);
+        } catch (_) {
+            deployManifestCache = {};
+        }
+        return deployManifestCache;
+    }
+
+    function getCurrentDocumentHtml() {
+        const doctype = document.doctype
+            ? `<!DOCTYPE ${document.doctype.name}${document.doctype.publicId ? ` PUBLIC "${document.doctype.publicId}"` : ''}${document.doctype.systemId ? `${document.doctype.publicId ? ' ' : ' SYSTEM '}"${document.doctype.systemId}"` : ''}>`
+            : '<!DOCTYPE html>';
+        return `${doctype}\n${document.documentElement.outerHTML}`;
+    }
+
+    function getFallbackEmbedHtml() {
+        return `<!DOCTYPE html>
+<html lang="en" data-cherry-embed>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cherry Embed</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css?v=2">
+</head>
+<body>
+    <main class="main-container">
+        <section class="form-interface glass-panel">
+            <header class="form-header">
+                <div class="brand">
+                    <div class="brand-logo-wrap" id="brand-logo-wrap" aria-hidden="true">
+                        <img src="assets/cherry-logo.png" alt="Brand logo" class="brand-logo-img" id="brand-logo-img">
+                    </div>
+                    <div class="status-dot"></div>
+                    <h1>Cherry</h1>
+                </div>
+                <div class="header-actions" id="header-actions">
+                    <a href="https://deejayedson.com/" class="settings-btn" id="home-btn" aria-label="Home">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                        </svg>
+                    </a>
+                    <button class="settings-btn" id="email-btn" aria-label="Send Email">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                            <polyline points="22,6 12,13 2,6"></polyline>
+                        </svg>
+                    </button>
+                    <button class="settings-btn" id="download-btn" aria-label="Download Chat">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                    </button>
+                    <button class="settings-btn" id="restart-btn" aria-label="Restart">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="23 4 23 10 17 10"></polyline>
+                            <polyline points="1 20 1 14 7 14"></polyline>
+                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                        </svg>
+                    </button>
+                </div>
+            </header>
+
+            <div class="header-video" id="header-video" hidden>
+                <video id="header-video-player" playsinline muted loop autoplay preload="metadata"></video>
+            </div>
+
+            <div class="chat-layout">
+                <div class="conversation-flow" id="conversation-flow"></div>
+            </div>
+
+            <div class="input-area">
+                <div class="input-wrapper">
+                    <input type="text" id="user-input" placeholder="Type here..." autocomplete="off">
+                </div>
+                <div class="nav-actions">
+                    <button id="send-btn" aria-label="Submit">Submit</button>
+                </div>
+            </div>
+
+            <footer class="brand-footer" id="brand-footer">
+                <a href="https://astigmedia.com/" target="_blank" rel="noreferrer" class="brand-link" id="brand-link">Astig Media</a>
+            </footer>
+            <p class="webhook-debug" id="webhook-debug"></p>
+        </section>
+
+        <button class="chat-launcher circle anim-pulse chat-launcher--3d" id="chat-launcher" aria-label="Chat with Cherry" title="Chat with Cherry — We typically reply in minutes">
+            <span class="sr-only" id="chat-launcher-label">Chat with Cherry</span>
+            <span class="sr-only" id="chat-launcher-subtext">We typically reply in minutes</span>
+            <div class="chat-launcher__icon" id="chat-launcher-icon" aria-hidden="true" style="background-image: url('https://widjets.astigmedia.com/img/main-logo.png'); width: 50px; height: 50px;"></div>
+        </button>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>`;
+    }
+
+    function getEmbeddedDeployContentBase64(file) {
+        if (file === 'index.html') {
+            return encodeTextToBase64(getCurrentDocumentHtml());
+        }
+        if (file === 'embed.html') {
+            return encodeTextToBase64(getFallbackEmbedHtml());
+        }
+        return getDeployManifest()[file] || null;
+    }
+
+    async function fetchFileContentBase64(file) {
+        const embeddedContent = getEmbeddedDeployContentBase64(file);
+        if (window.location.protocol === 'file:' && embeddedContent) {
+            return embeddedContent;
+        }
+        try {
+            const url = new URL(file, window.location.href).href;
+            const res = await fetch(url, { cache: 'no-cache' });
+            if (!res.ok) {
+                throw new Error(`could not read ${file}`);
+            }
+            return encodeBytesToBase64(new Uint8Array(await res.arrayBuffer()));
+        } catch (err) {
+            if (embeddedContent) {
+                return embeddedContent;
+            }
+            throw err;
+        }
     }
 
     async function copyEmbedCode() {
@@ -3272,10 +3502,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateWebhookDebug(mode, url) {
-        if (!webhookDebug) return;
-        const safeMode = (mode || safeStorageGet(STORAGE_KEYS.webhookActive, 'prod') || 'prod').toUpperCase();
-        const safeUrl = url || currentWebhookUrl || '';
-        webhookDebug.textContent = `Webhook: ${safeMode} - ${safeUrl}`;
+        return;
     }
 
     function setActiveWebhook(mode, persist = true) {
