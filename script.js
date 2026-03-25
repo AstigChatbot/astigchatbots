@@ -12,6 +12,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const restartBtn = document.getElementById('restart-btn');
     const downloadBtn = document.getElementById('download-btn');
     const emailBtn = document.getElementById('email-btn');
+    const headerTitle = document.getElementById('header-title');
+    const headerSubtitle = document.getElementById('header-subtitle');
+    const headerStatusDot = document.getElementById('header-status-dot');
     const webhookToggle = document.getElementById('webhook-toggle');
     const refreshBtn = document.getElementById('refresh-btn');
     const saveProjectBtn = document.getElementById('save-project-btn');
@@ -100,6 +103,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const headerDrawer = document.getElementById('header-drawer');
     const headerOverlay = document.getElementById('header-overlay');
     const headerClose = document.getElementById('header-close');
+    const headerTitleInput = document.getElementById('header-title-input');
+    const headerSubtitleInput = document.getElementById('header-subtitle-input');
+    const headerShowStatusDotInput = document.getElementById('header-show-status-dot');
+    const headerShowSubtitleInput = document.getElementById('header-show-subtitle');
     const headerShowHomeInput = document.getElementById('header-show-home');
     const headerShowEmailInput = document.getElementById('header-show-email');
     const headerShowDownloadInput = document.getElementById('header-show-download');
@@ -234,6 +241,10 @@ document.addEventListener('DOMContentLoaded', () => {
         footerFontSize: 'cherry.footer.fontSize',
         footerAnimation: 'cherry.footer.animation',
         footerBackground: 'cherry.footer.background',
+        headerTitle: 'cherry.header.title',
+        headerSubtitle: 'cherry.header.subtitle',
+        headerShowStatusDot: 'cherry.header.showStatusDot',
+        headerShowSubtitle: 'cherry.header.showSubtitle',
         headerShowHome: 'cherry.header.showHome',
         headerShowEmail: 'cherry.header.showEmail',
         headerShowDownload: 'cherry.header.showDownload',
@@ -499,6 +510,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (saveHeaderSettingsBtn) {
         saveHeaderSettingsBtn.addEventListener('click', saveHeaderSettings);
     }
+    [headerTitleInput, headerSubtitleInput].forEach(input => {
+        if (input) {
+            input.addEventListener('input', previewHeaderSettings);
+        }
+    });
+    [headerShowStatusDotInput, headerShowSubtitleInput, headerShowHomeInput, headerShowEmailInput, headerShowDownloadInput, headerShowRestartInput].forEach(input => {
+        if (input) {
+            input.addEventListener('change', previewHeaderSettings);
+        }
+    });
     if (logoOverlay) {
         logoOverlay.addEventListener('click', () => openLogoDrawer(false));
     }
@@ -1276,10 +1297,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function getDefaultHeaderSettings() {
         return {
+            title: 'Cherry',
+            subtitle: '',
+            showStatusDot: true,
+            showSubtitle: false,
             showHome: true,
             showEmail: true,
             showDownload: true,
             showRestart: true
+        };
+    }
+
+    function sanitizeHeaderSettings(candidate = {}) {
+        const defaults = getDefaultHeaderSettings();
+        const title = String(candidate?.title || defaults.title).trim() || defaults.title;
+        const subtitle = String(candidate?.subtitle || '').trim();
+        return {
+            title,
+            subtitle,
+            showStatusDot: candidate?.showStatusDot !== false,
+            showSubtitle: candidate?.showSubtitle === true && !!subtitle,
+            showHome: candidate?.showHome !== false,
+            showEmail: candidate?.showEmail !== false,
+            showDownload: candidate?.showDownload !== false,
+            showRestart: candidate?.showRestart !== false
         };
     }
 
@@ -1293,23 +1334,63 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function applyHeaderSettings(settings) {
-        if (homeBtn) homeBtn.style.display = settings.showHome ? '' : 'none';
-        if (emailBtn) emailBtn.style.display = settings.showEmail ? '' : 'none';
-        if (downloadBtn) downloadBtn.style.display = settings.showDownload ? '' : 'none';
-        if (restartBtn) restartBtn.style.display = settings.showRestart ? '' : 'none';
+        const nextSettings = sanitizeHeaderSettings(settings);
+        const liveFormHeader = document.querySelector('.form-interface .form-header') || document.querySelector('.form-header');
+        const liveBrand = liveFormHeader?.querySelector('.brand');
+        const liveTitle = document.getElementById('header-title') || liveBrand?.querySelector('h1');
+        const liveStatusDot = document.getElementById('header-status-dot') || liveBrand?.querySelector('.status-dot');
+        let liveSubtitle = document.getElementById('header-subtitle') || liveBrand?.querySelector('.brand-subtitle');
+        let liveCopy = liveBrand?.querySelector('.brand-copy');
+
+        if (!liveCopy && liveBrand && liveTitle) {
+            liveCopy = document.createElement('div');
+            liveCopy.className = 'brand-copy';
+            liveTitle.insertAdjacentElement('beforebegin', liveCopy);
+            liveCopy.appendChild(liveTitle);
+        }
+
+        if (!liveSubtitle && liveCopy) {
+            liveSubtitle = document.createElement('p');
+            liveSubtitle.className = 'brand-subtitle';
+            liveSubtitle.id = 'header-subtitle';
+            liveCopy.appendChild(liveSubtitle);
+        }
+
+        if (liveTitle) {
+            liveTitle.textContent = nextSettings.title;
+        }
+        if (liveSubtitle) {
+            liveSubtitle.textContent = nextSettings.subtitle;
+            liveSubtitle.hidden = !nextSettings.showSubtitle;
+        }
+        if (liveStatusDot) {
+            liveStatusDot.hidden = !nextSettings.showStatusDot;
+        }
+        if (homeBtn) homeBtn.style.display = nextSettings.showHome ? '' : 'none';
+        if (emailBtn) emailBtn.style.display = nextSettings.showEmail ? '' : 'none';
+        if (downloadBtn) downloadBtn.style.display = nextSettings.showDownload ? '' : 'none';
+        if (restartBtn) restartBtn.style.display = nextSettings.showRestart ? '' : 'none';
         if (headerActions) {
             headerActions.style.gap = '15px';
         }
     }
 
     function hydrateHeaderSettings() {
-        const settings = {
+        const settings = sanitizeHeaderSettings({
+            title: safeStorageGet(STORAGE_KEYS.headerTitle, getDefaultHeaderSettings().title),
+            subtitle: safeStorageGet(STORAGE_KEYS.headerSubtitle, getDefaultHeaderSettings().subtitle),
+            showStatusDot: safeStorageGet(STORAGE_KEYS.headerShowStatusDot, 'true') !== 'false',
+            showSubtitle: safeStorageGet(STORAGE_KEYS.headerShowSubtitle, 'false') === 'true',
             showHome: safeStorageGet(STORAGE_KEYS.headerShowHome, 'true') !== 'false',
             showEmail: safeStorageGet(STORAGE_KEYS.headerShowEmail, 'true') !== 'false',
             showDownload: safeStorageGet(STORAGE_KEYS.headerShowDownload, 'true') !== 'false',
             showRestart: safeStorageGet(STORAGE_KEYS.headerShowRestart, 'true') !== 'false'
-        };
+        });
 
+        if (headerTitleInput) headerTitleInput.value = settings.title;
+        if (headerSubtitleInput) headerSubtitleInput.value = settings.subtitle;
+        if (headerShowStatusDotInput) headerShowStatusDotInput.checked = settings.showStatusDot;
+        if (headerShowSubtitleInput) headerShowSubtitleInput.checked = settings.showSubtitle;
         if (headerShowHomeInput) headerShowHomeInput.checked = settings.showHome;
         if (headerShowEmailInput) headerShowEmailInput.checked = settings.showEmail;
         if (headerShowDownloadInput) headerShowDownloadInput.checked = settings.showDownload;
@@ -1318,20 +1399,43 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function saveHeaderSettings() {
-        const settings = {
+        const settings = sanitizeHeaderSettings({
+            title: headerTitleInput?.value || '',
+            subtitle: headerSubtitleInput?.value || '',
+            showStatusDot: !!headerShowStatusDotInput?.checked,
+            showSubtitle: !!headerShowSubtitleInput?.checked,
             showHome: !!headerShowHomeInput?.checked,
             showEmail: !!headerShowEmailInput?.checked,
             showDownload: !!headerShowDownloadInput?.checked,
             showRestart: !!headerShowRestartInput?.checked
-        };
+        });
 
+        safeStorageSet(STORAGE_KEYS.headerTitle, settings.title);
+        safeStorageSet(STORAGE_KEYS.headerSubtitle, settings.subtitle);
+        safeStorageSet(STORAGE_KEYS.headerShowStatusDot, String(settings.showStatusDot));
+        safeStorageSet(STORAGE_KEYS.headerShowSubtitle, String(settings.showSubtitle));
         safeStorageSet(STORAGE_KEYS.headerShowHome, String(settings.showHome));
         safeStorageSet(STORAGE_KEYS.headerShowEmail, String(settings.showEmail));
         safeStorageSet(STORAGE_KEYS.headerShowDownload, String(settings.showDownload));
         safeStorageSet(STORAGE_KEYS.headerShowRestart, String(settings.showRestart));
         applyHeaderSettings(settings);
         flashButton(saveHeaderSettingsBtn, 'Applied');
-        setHeaderStatus('Header icon visibility updated.', 'success');
+        setHeaderStatus('Header content and visibility updated.', 'success');
+    }
+
+    function previewHeaderSettings() {
+        const settings = sanitizeHeaderSettings({
+            title: headerTitleInput?.value || '',
+            subtitle: headerSubtitleInput?.value || '',
+            showStatusDot: !!headerShowStatusDotInput?.checked,
+            showSubtitle: !!headerShowSubtitleInput?.checked,
+            showHome: !!headerShowHomeInput?.checked,
+            showEmail: !!headerShowEmailInput?.checked,
+            showDownload: !!headerShowDownloadInput?.checked,
+            showRestart: !!headerShowRestartInput?.checked
+        });
+        applyHeaderSettings(settings);
+        setHeaderStatus('Header preview updated.', 'success');
     }
 
     function sanitizeFooterSettings(candidate = {}) {
@@ -1683,12 +1787,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 background: themeBackgroundInput?.value || safeStorageGet(STORAGE_KEYS.themeBackground, getDefaultThemeSettings().background),
                 style: Array.from(themeStyleButtons).find(btn => btn.classList.contains('active'))?.dataset.themeStyle || safeStorageGet(STORAGE_KEYS.themeStyle, getDefaultThemeSettings().style)
             }),
-            header: {
+            header: sanitizeHeaderSettings({
+                title: headerTitleInput?.value || safeStorageGet(STORAGE_KEYS.headerTitle, getDefaultHeaderSettings().title),
+                subtitle: headerSubtitleInput?.value || safeStorageGet(STORAGE_KEYS.headerSubtitle, getDefaultHeaderSettings().subtitle),
+                showStatusDot: headerShowStatusDotInput?.checked ?? (safeStorageGet(STORAGE_KEYS.headerShowStatusDot, 'true') !== 'false'),
+                showSubtitle: headerShowSubtitleInput?.checked ?? (safeStorageGet(STORAGE_KEYS.headerShowSubtitle, 'false') === 'true'),
                 showHome: !!headerShowHomeInput?.checked,
                 showEmail: !!headerShowEmailInput?.checked,
                 showDownload: !!headerShowDownloadInput?.checked,
                 showRestart: !!headerShowRestartInput?.checked
-            },
+            }),
             video: sanitizeVideoSettings({
                 enabled: videoEnabledInput?.checked ?? (safeStorageGet(STORAGE_KEYS.videoEnabled, 'true') !== 'false'),
                 url: videoUrlInput?.value || safeStorageGet(STORAGE_KEYS.videoUrl, getDefaultVideoSettings().url)
@@ -1993,20 +2101,19 @@ document.addEventListener('DOMContentLoaded', () => {
             applyThemeSettings(nextThemeSettings);
         }
 
-        const headerSettings = snapshot?.header || getDefaultHeaderSettings();
+        const headerSettings = sanitizeHeaderSettings(snapshot?.header || {});
+        if (headerTitleInput) headerTitleInput.value = headerSettings.title;
+        if (headerSubtitleInput) headerSubtitleInput.value = headerSettings.subtitle;
+        if (headerShowStatusDotInput) headerShowStatusDotInput.checked = headerSettings.showStatusDot;
+        if (headerShowSubtitleInput) headerShowSubtitleInput.checked = headerSettings.showSubtitle;
         if (headerShowHomeInput) headerShowHomeInput.checked = headerSettings.showHome !== false;
         if (headerShowEmailInput) headerShowEmailInput.checked = headerSettings.showEmail !== false;
         if (headerShowDownloadInput) headerShowDownloadInput.checked = headerSettings.showDownload !== false;
         if (headerShowRestartInput) headerShowRestartInput.checked = headerSettings.showRestart !== false;
-        if (headerShowHomeInput && headerShowEmailInput && headerShowDownloadInput && headerShowRestartInput) {
+        if (headerTitleInput && headerSubtitleInput && headerShowStatusDotInput && headerShowSubtitleInput && headerShowHomeInput && headerShowEmailInput && headerShowDownloadInput && headerShowRestartInput) {
             saveHeaderSettings();
         } else {
-            applyHeaderSettings({
-                showHome: headerSettings.showHome !== false,
-                showEmail: headerSettings.showEmail !== false,
-                showDownload: headerSettings.showDownload !== false,
-                showRestart: headerSettings.showRestart !== false
-            });
+            applyHeaderSettings(headerSettings);
         }
 
         const videoSettings = sanitizeVideoSettings(snapshot?.video || {});
@@ -3351,7 +3458,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=2">
+    <link rel="stylesheet" href="styles.css?v=3">
 </head>
 <body>
     <main class="main-container">
@@ -3361,8 +3468,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="brand-logo-wrap" id="brand-logo-wrap" aria-hidden="true">
                         <img src="assets/cherry-logo.png" alt="Brand logo" class="brand-logo-img" id="brand-logo-img">
                     </div>
-                    <div class="status-dot"></div>
-                    <h1>Cherry</h1>
+                    <div class="status-dot" id="header-status-dot"></div>
+                    <div class="brand-copy">
+                        <h1 id="header-title">Cherry</h1>
+                        <p class="brand-subtitle" id="header-subtitle" hidden></p>
+                    </div>
                 </div>
                 <div class="header-actions" id="header-actions">
                     <a href="https://deejayedson.com/" class="settings-btn" id="home-btn" aria-label="Home">
@@ -3424,7 +3534,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </button>
     </main>
 
-    <script src="script.js"></script>
+    <script src="script.js?v=3"></script>
 </body>
 </html>`;
     }
