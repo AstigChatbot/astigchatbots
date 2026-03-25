@@ -149,6 +149,9 @@ body.embedded-app[data-builder-style="transparent"] .conversation-flow {
     align-items: center;
     justify-content: center;
     pointer-events: none;
+    opacity: 1;
+    transform: scale(1);
+    transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
 .app-logo img {
@@ -156,6 +159,13 @@ body.embedded-app[data-builder-style="transparent"] .conversation-flow {
     height: 78px;
     object-fit: contain;
     filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.35));
+}
+
+body.drawer-panel-open .app-logo {
+    opacity: 0;
+    transform: scale(0.9);
+    visibility: hidden;
+    z-index: -1;
 }
 
 .app-logo img.logo-anim-pulse,
@@ -1264,6 +1274,58 @@ body.drawer-panel-open .floating-menu:not(.left-menu) {
     /* remove slide up */
 }
 
+.split-name-fields {
+    margin-top: 18px;
+    width: min(100%, 540px);
+}
+
+.split-name-fields__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.split-name-fields__item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.split-name-fields__item span {
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.62);
+}
+
+.split-name-input {
+    width: 100%;
+    min-height: 52px;
+    padding: 14px 16px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(15, 23, 42, 0.48);
+    color: var(--text-main);
+    font: inherit;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.split-name-input::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.split-name-input:focus {
+    border-color: color-mix(in srgb, var(--primary) 78%, white 22%);
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.18);
+    background: rgba(15, 23, 42, 0.68);
+}
+
+.split-name-input--error {
+    border-color: rgba(248, 113, 113, 0.75);
+    box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.12);
+}
+
 @keyframes lookAround {
 
     0%,
@@ -1555,6 +1617,10 @@ body.drawer-panel-open .floating-menu:not(.left-menu) {
     /* Reduced padding to lower the input area */
 }
 
+.input-area--inline-mode .nav-actions {
+    margin-top: 10px;
+}
+
 .input-wrapper {
     display: flex;
     align-items: center;
@@ -1712,6 +1778,10 @@ body.drawer-panel-open .floating-menu:not(.left-menu) {
         /* Readable prompt size */
     }
 
+    .split-name-fields__grid {
+        grid-template-columns: 1fr;
+    }
+
     #user-input {
         font-size: 1.2rem;
         /* Prevent auto-zoom on iOS (needs >= 16px, this is safe) */
@@ -1779,16 +1849,6 @@ body.drawer-panel-open .floating-menu:not(.left-menu) {
 
 .brand-link.footer-anim-pulse {
     animation: footerPulse 2s ease-in-out infinite;
-}
-
-.webhook-debug {
-    margin-top: 8px;
-    padding-inline: 18px;
-    font-size: 0.68rem;
-    line-height: 1.35;
-    color: rgba(148, 163, 184, 0.78);
-    text-align: center;
-    word-break: break-all;
 }
 
 @keyframes footerGlow {
