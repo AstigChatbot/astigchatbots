@@ -176,6 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const userAvatarSizeInput = document.getElementById('user-avatar-size');
     const userAvatarRadiusInput = document.getElementById('user-avatar-radius');
     const userAvatarBgInput = document.getElementById('user-avatar-bg');
+    const userAvatarHideReplyInput = document.getElementById('user-avatar-hide-reply');
     const userAvatarAnimateInput = document.getElementById('user-avatar-animate');
     const userAvatarAnimationSelect = document.getElementById('user-avatar-animation');
     const embedJsUrlInput = document.getElementById('embed-js-url');
@@ -270,6 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
             sizeInput: userAvatarSizeInput,
             radiusInput: userAvatarRadiusInput,
             bgInput: userAvatarBgInput,
+            hideReplyInput: userAvatarHideReplyInput,
             animateInput: userAvatarAnimateInput,
             animationInput: userAvatarAnimationSelect,
             fallbackLabel: 'Y'
@@ -604,7 +606,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     Object.entries(AVATAR_FIELDS).forEach(([role, fields]) => {
-        [fields.urlInput, fields.filterInput, fields.sizeInput, fields.radiusInput, fields.bgInput, fields.animateInput, fields.animationInput]
+        [fields.urlInput, fields.filterInput, fields.sizeInput, fields.radiusInput, fields.bgInput, fields.hideReplyInput, fields.animateInput, fields.animationInput]
             .filter(Boolean)
             .forEach(input => {
                 const eventName = input.type === 'checkbox' || input.tagName === 'SELECT' ? 'change' : 'input';
@@ -722,8 +724,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 placeholder: "Type here..."
             },
             {
+                field: 'email',
+                question: "Thanks, <span class='highlight'>{firstName}</span>.<br>What's the best email address for you?",
+                placeholder: "Enter your email address..."
+            },
+            {
                 field: 'inquiry',
-                question: "Nice to meet you, <span class='highlight'>{name}</span>.<br>What's on your mind?",
+                question: "Nice to meet you, <span class='highlight'>{firstName}</span>.<br>What's on your mind?",
                 placeholder: "Type here..."
             }
         ];
@@ -746,6 +753,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 size: 40,
                 radius: 50,
                 background: '#5b21b6',
+                hideReply: false,
                 animate: false,
                 animation: 'float'
             };
@@ -772,6 +780,7 @@ document.addEventListener('DOMContentLoaded', () => {
             size: Number.isFinite(size) ? Math.min(128, Math.max(32, size)) : defaults.size,
             radius: Number.isFinite(radius) ? Math.min(100, Math.max(0, radius)) : defaults.radius,
             background: /^#[0-9a-f]{6}$/i.test(candidate?.background || '') ? candidate.background : defaults.background,
+            hideReply: typeof candidate?.hideReply === 'boolean' ? candidate.hideReply : defaults.hideReply,
             animate: typeof candidate?.animate === 'boolean' ? candidate.animate : defaults.animate,
             animation: ['pulse', 'float', 'spin'].includes(candidate?.animation) ? candidate.animation : defaults.animation
         };
@@ -828,14 +837,37 @@ document.addEventListener('DOMContentLoaded', () => {
         return nextSteps.length > 0 ? nextSteps : getDefaultSteps();
     }
 
+    function upgradeQuestionnaireSteps(candidateSteps) {
+        const nextSteps = [...candidateSteps];
+        const hasEmailStep = nextSteps.some(step => String(step?.field || '').trim().toLowerCase() === 'email');
+        if (hasEmailStep) {
+            return nextSteps;
+        }
+
+        const nameIndex = nextSteps.findIndex(step => String(step?.field || '').trim().toLowerCase() === 'name');
+        const inquiryIndex = nextSteps.findIndex(step => String(step?.field || '').trim().toLowerCase() === 'inquiry');
+
+        if (nameIndex === 0 && inquiryIndex === 1) {
+            nextSteps.splice(1, 0, {
+                field: 'email',
+                question: "Thanks, <span class='highlight'>{firstName}</span>.<br>What's the best email address for you?",
+                placeholder: "Enter your email address..."
+            });
+        }
+
+        return nextSteps;
+    }
+
     function hydrateQuestionnaireSettings() {
         const storedSteps = safeStorageGet(STORAGE_KEYS.questionnaireSteps, '');
         if (storedSteps) {
             try {
-                steps = sanitizeSteps(JSON.parse(storedSteps));
+                steps = upgradeQuestionnaireSteps(sanitizeSteps(JSON.parse(storedSteps)));
             } catch (_) {
                 steps = getDefaultSteps();
             }
+        } else {
+            steps = upgradeQuestionnaireSteps(getDefaultSteps());
         }
 
         questionnaireSettings = {
@@ -872,6 +904,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (fields.sizeInput) fields.sizeInput.value = String(settings.size);
         if (fields.radiusInput) fields.radiusInput.value = String(settings.radius);
         if (fields.bgInput) fields.bgInput.value = settings.background;
+        if (fields.hideReplyInput) fields.hideReplyInput.checked = !!settings.hideReply;
         if (fields.animateInput) fields.animateInput.checked = !!settings.animate;
         if (fields.animationInput) fields.animationInput.value = settings.animation;
     }
@@ -884,6 +917,7 @@ document.addEventListener('DOMContentLoaded', () => {
             size: fields?.sizeInput?.value || '40',
             radius: fields?.radiusInput?.value || '50',
             background: fields?.bgInput?.value || getDefaultAvatarSettings(role).background,
+            hideReply: !!fields?.hideReplyInput?.checked,
             animate: !!fields?.animateInput?.checked,
             animation: fields?.animationInput?.value || getDefaultAvatarSettings(role).animation
         });
@@ -940,6 +974,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         updateAvatarElement(fields.preview, previewSettings, role);
+        if (role === 'user' && previewSettings.hideReply) {
+            setAvatarStatus(role, 'User replies and the user avatar will be hidden in the builder preview after you apply this setting.', 'success');
+            return true;
+        }
         setAvatarStatus(role, url.trim() ? 'Preview ready. Press Apply avatars to update the builder.' : 'No image URL set. The fallback badge will be used until you add one.', url.trim() ? 'success' : 'info');
         return true;
     }
@@ -950,6 +988,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         document.querySelectorAll('.avatar[data-avatar-role="user"]').forEach(element => {
             updateAvatarElement(element, avatarSettings.user, 'user');
+        });
+        applyUserReplyVisibility();
+    }
+
+    function applyUserReplyVisibility() {
+        const hideUserReply = !!avatarSettings.user?.hideReply;
+        document.querySelectorAll('.user-reply').forEach(element => {
+            element.hidden = hideUserReply;
+            element.style.display = hideUserReply ? 'none' : '';
+            element.setAttribute('aria-hidden', hideUserReply ? 'true' : 'false');
         });
     }
 
@@ -2098,7 +2146,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function setPrimaryInputMode(mode) {
         const showInlineNameForm = mode === 'split-name';
-        if (inputWrapper) inputWrapper.hidden = showInlineNameForm;
+        if (inputArea) {
+            inputArea.hidden = showInlineNameForm;
+            inputArea.style.display = showInlineNameForm ? 'none' : '';
+            inputArea.setAttribute('aria-hidden', showInlineNameForm ? 'true' : 'false');
+        }
+        if (inputWrapper) {
+            inputWrapper.hidden = showInlineNameForm;
+            inputWrapper.style.display = showInlineNameForm ? 'none' : '';
+        }
+        if (sendBtn) {
+            sendBtn.hidden = showInlineNameForm;
+            sendBtn.style.display = showInlineNameForm ? 'none' : '';
+        }
         if (inputArea) inputArea.classList.toggle('input-area--inline-mode', showInlineNameForm);
         if (sendBtn) sendBtn.textContent = showInlineNameForm ? 'Continue' : 'Submit';
     }
@@ -2179,8 +2239,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (h2) {
                 if (questionnaireSettings.animation === 'instant') {
                     h2.innerHTML = qText;
+                    queueMicrotask(() => focusPrimaryResponseInput());
                 } else {
-                    typeText(h2, qText, getQuestionTypingSpeed());
+                    typeText(h2, qText, getQuestionTypingSpeed(), focusPrimaryResponseInput);
                 }
             }
 
@@ -2193,7 +2254,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 setPrimaryInputMode('default');
                 userInput.placeholder = stepData.placeholder;
                 userInput.value = '';
-                userInput.focus();
                 userInput.disabled = false;
             }
         } else {
@@ -2207,6 +2267,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function buildQuestionText(stepData) {
         let qText = stepData.question;
+        if (formData.firstName) {
+            qText = qText.replace(/\{firstName\}/g, formData.firstName);
+            qText = qText.replace(/\{Firstname\}/g, formData.firstName);
+        }
         if (formData.name) {
             qText = qText.replace(/\{name\}/g, formData.name);
         }
@@ -2218,7 +2282,18 @@ document.addEventListener('DOMContentLoaded', () => {
         return questionnaireSettings.animation === 'fast' ? 18 : 40;
     }
 
-    function typeText(element, html, speed = 40) {
+    function focusPrimaryResponseInput() {
+        if (isSplitNameStep()) {
+            const firstNameInput = flowContainer.querySelector('.message-wrapper:last-child [data-name-part="first"]');
+            firstNameInput?.focus();
+            return;
+        }
+        if (!userInput.disabled && !inputArea?.hidden) {
+            userInput.focus();
+        }
+    }
+
+    function typeText(element, html, speed = 40, onComplete = null) {
         element.innerHTML = html; // Set initial structure (hidden text)
 
         const textNodes = [];
@@ -2234,7 +2309,10 @@ document.addEventListener('DOMContentLoaded', () => {
         let charIdx = 0;
 
         function type() {
-            if (nodeIdx >= textNodes.length) return;
+            if (nodeIdx >= textNodes.length) {
+                if (typeof onComplete === 'function') onComplete();
+                return;
+            }
 
             const currentItem = textNodes[nodeIdx];
 
@@ -2253,6 +2331,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Start typing if there is text
         if (textNodes.length > 0) {
             type();
+        } else if (typeof onComplete === 'function') {
+            onComplete();
         }
     }
 
@@ -2272,6 +2352,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 replyRow.appendChild(answerSpan);
                 replyRow.appendChild(createAvatarElement('user'));
                 activeStep.appendChild(replyRow);
+                applyUserReplyVisibility();
             }
         }
     }
@@ -2285,11 +2366,10 @@ document.addEventListener('DOMContentLoaded', () => {
         stepDiv.innerHTML = `<h2></h2>`;
 
         const h2 = stepDiv.querySelector('h2');
-        typeText(h2, "To stay in touch, could you please share your email address?");
+        typeText(h2, "To stay in touch, could you please share your email address?", getQuestionTypingSpeed(), focusPrimaryResponseInput);
 
         userInput.placeholder = "Enter your email...";
         userInput.value = '';
-        userInput.focus();
         scrollToBottom();
     }
 
@@ -2332,10 +2412,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (currentStep < steps.length) {
             // Save Data for wizard steps
             const currentField = steps[currentStep].field;
-            formData[currentField] = text;
             if (splitNameValues) {
+                formData[currentField] = splitNameValues.firstName;
                 formData.firstName = splitNameValues.firstName;
                 formData.lastName = splitNameValues.lastName;
+            } else {
+                formData[currentField] = text;
             }
 
             currentStep++;
@@ -2790,6 +2872,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function applyQuestionnaire() {
         saveSelectedQuestion();
         if (!questionsStatus || questionsStatus.classList.contains('error')) return;
+        steps = upgradeQuestionnaireSteps(steps);
+        safeStorageSet(STORAGE_KEYS.questionnaireSteps, JSON.stringify(steps));
         currentStep = Math.min(currentStep, Math.max(steps.length - 1, 0));
         flowContainer.innerHTML = '';
         renderStep();
