@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
         pageParams.get('embed') === '1' ||
         window.name === 'CHERRY_EMBED_FRAME' ||
         document.documentElement.hasAttribute('data-cherry-embed');
+    const isInlineEmbedded = pageParams.get('inline') === '1';
     const flowContainer = document.getElementById('conversation-flow');
     const userInput = document.getElementById('user-input');
     const sendBtn = document.getElementById('send-btn');
@@ -293,6 +294,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (isEmbeddedApp) {
         document.body.classList.add('embedded-app');
+    }
+    if (isInlineEmbedded) {
+        document.body.classList.add('embedded-inline');
     }
 
     function safeStorageGet(key, fallback = '') {
@@ -818,7 +822,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!url) return true;
         if (url.startsWith('data:image/')) return true;
         try {
-            const parsed = new URL(url, window.location.href);
+            const parsed = new URL(url, document.baseURI || window.location.href);
             return ['http:', 'https:', 'data:', 'blob:'].includes(parsed.protocol) || !value.includes('://');
         } catch (_) {
             return false;
@@ -829,7 +833,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const url = (value || '').trim();
         if (!url) return '';
         try {
-            return new URL(url, window.location.href).href;
+            return new URL(url, document.baseURI || window.location.href).href;
         } catch (_) {
             return '';
         }
