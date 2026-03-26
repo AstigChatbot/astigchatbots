@@ -85,6 +85,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const themeOverlay = document.getElementById('theme-overlay');
     const themeClose = document.getElementById('theme-close');
     const themeBackgroundInput = document.getElementById('theme-background');
+    const themePageTitleInput = document.getElementById('theme-page-title');
+    const themeFaviconUrlInput = document.getElementById('theme-favicon-url');
     const themeStatus = document.getElementById('theme-status');
     const themeStyleButtons = document.querySelectorAll('#theme-drawer [data-theme-style]');
     const saveThemeSettingsBtn = document.getElementById('save-theme-settings');
@@ -298,6 +300,8 @@ document.addEventListener('DOMContentLoaded', () => {
         headerRestartIconUrl: 'cherry.header.restartIconUrl',
         themeBackground: 'cherry.theme.background',
         themeStyle: 'cherry.theme.style',
+        themePageTitle: 'cherry.theme.pageTitle',
+        themeFaviconUrl: 'cherry.theme.faviconUrl',
         logoUrl: 'cherry.logo.url',
         logoSize: 'cherry.logo.size',
         logoAnimation: 'cherry.logo.animation',
@@ -738,6 +742,12 @@ document.addEventListener('DOMContentLoaded', () => {
         themeBackgroundInput.addEventListener('input', previewThemeSettings);
         themeBackgroundInput.addEventListener('change', saveThemeSettings);
     }
+    [themePageTitleInput, themeFaviconUrlInput].forEach(input => {
+        if (input) {
+            input.addEventListener('input', previewThemeSettings);
+            input.addEventListener('change', saveThemeSettings);
+        }
+    });
 
     themeStyleButtons.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -1249,7 +1259,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function getDefaultThemeSettings() {
         return {
             background: '#182233',
-            style: 'glass'
+            style: 'glass',
+            pageTitle: 'Cherry - Messages',
+            faviconUrl: 'assets/favicon.png'
         };
     }
 
@@ -1257,7 +1269,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const defaults = getDefaultThemeSettings();
         return {
             background: /^#[0-9a-f]{6}$/i.test(candidate?.background || '') ? candidate.background : defaults.background,
-            style: ['glass', 'gradient', 'transparent'].includes(candidate?.style) ? candidate.style : defaults.style
+            style: ['glass', 'gradient', 'transparent'].includes(candidate?.style) ? candidate.style : defaults.style,
+            pageTitle: String(candidate?.pageTitle || '').trim() || defaults.pageTitle,
+            faviconUrl: String(candidate?.faviconUrl || '').trim() || defaults.faviconUrl
         };
     }
 
@@ -1283,19 +1297,39 @@ document.addEventListener('DOMContentLoaded', () => {
         const activeStyle = Array.from(themeStyleButtons).find(btn => btn.classList.contains('active'))?.dataset.themeStyle || themeSettings.style;
         return sanitizeThemeSettings({
             background: themeBackgroundInput?.value || '',
-            style: activeStyle
+            style: activeStyle,
+            pageTitle: themePageTitleInput?.value || '',
+            faviconUrl: themeFaviconUrlInput?.value || ''
         });
     }
 
     function writeThemeFormSettings(settings) {
         if (themeBackgroundInput) themeBackgroundInput.value = settings.background;
+        if (themePageTitleInput) themePageTitleInput.value = settings.pageTitle;
+        if (themeFaviconUrlInput) themeFaviconUrlInput.value = settings.faviconUrl;
         setActiveThemeStyle(settings.style);
+    }
+
+    function applyThemeBranding(settings) {
+        document.title = settings.pageTitle || getDefaultThemeSettings().pageTitle;
+
+        const faviconHref = resolveAvatarUrl(settings.faviconUrl) || settings.faviconUrl || getDefaultThemeSettings().faviconUrl;
+        if (!faviconHref) return;
+
+        let faviconLink = document.querySelector('link[rel="icon"]');
+        if (!faviconLink) {
+            faviconLink = document.createElement('link');
+            faviconLink.setAttribute('rel', 'icon');
+            document.head.appendChild(faviconLink);
+        }
+        faviconLink.setAttribute('href', faviconHref);
     }
 
     function applyThemeSettings(settings) {
         themeSettings = sanitizeThemeSettings(settings);
         document.body.dataset.builderStyle = themeSettings.style;
         document.documentElement.style.setProperty('--builder-surface-color', themeSettings.background);
+        applyThemeBranding(themeSettings);
     }
 
     function previewThemeSettings() {
@@ -1309,13 +1343,17 @@ document.addEventListener('DOMContentLoaded', () => {
         applyThemeSettings(settings);
         safeStorageSet(STORAGE_KEYS.themeBackground, settings.background);
         safeStorageSet(STORAGE_KEYS.themeStyle, settings.style);
+        safeStorageSet(STORAGE_KEYS.themePageTitle, settings.pageTitle);
+        safeStorageSet(STORAGE_KEYS.themeFaviconUrl, settings.faviconUrl);
         setThemeStatus('Theme settings saved to the builder preview.', 'success');
     }
 
     function hydrateThemeSettings() {
         themeSettings = sanitizeThemeSettings({
             background: safeStorageGet(STORAGE_KEYS.themeBackground, getDefaultThemeSettings().background),
-            style: safeStorageGet(STORAGE_KEYS.themeStyle, getDefaultThemeSettings().style)
+            style: safeStorageGet(STORAGE_KEYS.themeStyle, getDefaultThemeSettings().style),
+            pageTitle: safeStorageGet(STORAGE_KEYS.themePageTitle, getDefaultThemeSettings().pageTitle),
+            faviconUrl: safeStorageGet(STORAGE_KEYS.themeFaviconUrl, getDefaultThemeSettings().faviconUrl)
         });
         writeThemeFormSettings(themeSettings);
         applyThemeSettings(themeSettings);
