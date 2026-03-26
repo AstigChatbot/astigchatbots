@@ -1663,6 +1663,7 @@ document.addEventListener('DOMContentLoaded', () => {
         safeStorageSet(STORAGE_KEYS.footerAnimation, settings.animation);
         safeStorageSet(STORAGE_KEYS.footerBackground, settings.background);
         applyFooterSettings(settings);
+        updateEmbedCode();
         flashButton(saveFooterSettingsBtn, 'Applied');
         setFooterStatus('Footer branding applied to the builder preview.', 'success');
     }
@@ -1754,6 +1755,7 @@ document.addEventListener('DOMContentLoaded', () => {
         safeStorageSet(STORAGE_KEYS.converseUserFontSize, String(settings.user.fontSize));
         safeStorageSet(STORAGE_KEYS.converseUserAnimation, settings.user.animation);
         applyConverseSettings(settings);
+        updateEmbedCode();
         flashButton(saveConverseSettingsBtn, 'Applied');
         if (converseStatus) converseStatus.textContent = 'Converse typography applied to the builder preview.';
     }
@@ -3301,6 +3303,7 @@ document.addEventListener('DOMContentLoaded', () => {
         questionnaireSettings.emoji = (questionEmojiInput?.value || '').trim();
         applyQuestionnaireStyles();
         persistQuestionnaire();
+        updateEmbedCode();
         renderQuestionList();
         loadQuestionSelection(selectedQuestionIndex);
         setQuestionsStatus('Question saved.', 'success');
@@ -3340,6 +3343,7 @@ document.addEventListener('DOMContentLoaded', () => {
         safeStorageSet(STORAGE_KEYS.questionFontSize, String(questionnaireSettings.fontSize));
         safeStorageSet(STORAGE_KEYS.questionAnimation, questionnaireSettings.animation);
         safeStorageSet(STORAGE_KEYS.questionEmoji, questionnaireSettings.emoji);
+        updateEmbedCode();
     }
 
     function applyQuestionnaireStyles() {
