@@ -800,6 +800,12 @@ body.drawer-panel-open .floating-menu:not(.left-menu) {
     padding-right: 4px;
 }
 
+.embed-snippet {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
 .field {
     display: flex;
     flex-direction: column;
@@ -1630,8 +1636,14 @@ body.drawer-panel-open .floating-menu:not(.left-menu) {
     /* Reduced padding to lower the input area */
 }
 
+.input-area.input-area--inline-mode {
+    margin-top: 18px;
+    padding-bottom: 0;
+}
+
 .input-area--inline-mode .nav-actions {
     margin-top: 10px;
+    justify-content: center;
 }
 
 .input-wrapper {
