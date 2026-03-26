@@ -181,6 +181,20 @@
     launcher.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
   }
 
+  function handleFrameMessage(event) {
+    if (event.source !== frame.contentWindow) return;
+    if (!event.data || event.data.type !== 'CHERRY_EMBED_MINIMIZE') return;
+
+    if (isInline) {
+      panel.style.display = 'none';
+      return;
+    }
+
+    syncOpenState(false);
+  }
+
+  window.addEventListener('message', handleFrameMessage);
+
   if (launcher) {
     launcher.addEventListener('click', () => syncOpenState(!isOpen));
 
