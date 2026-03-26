@@ -4,7 +4,9 @@ document.addEventListener('DOMContentLoaded', () => {
         pageParams.get('embed') === '1' ||
         window.name === 'CHERRY_EMBED_FRAME' ||
         document.documentElement.hasAttribute('data-cherry-embed');
-    const isInlineEmbedded = pageParams.get('inline') === '1';
+    const isInlineEmbedded =
+        pageParams.get('inline') === '1' ||
+        document.documentElement.hasAttribute('data-cherry-inline');
     const flowContainer = document.getElementById('conversation-flow');
     const userInput = document.getElementById('user-input');
     const sendBtn = document.getElementById('send-btn');
@@ -3266,7 +3268,9 @@ document.addEventListener('DOMContentLoaded', () => {
     })
     .then((html) => {
       const baseHref = appUrl.toString().replace(/[^/]*$/, '');
-      iframe.srcdoc = html.replace(/<head([^>]*)>/i, '<head$1><base href="' + baseHref + '">');
+      iframe.srcdoc = html
+        .replace(/<html([^>]*)data-cherry-embed([^>]*)>/i, '<html$1data-cherry-embed data-cherry-inline$2>')
+        .replace(/<head([^>]*)>/i, '<head$1><base href="' + baseHref + '">');
       iframe.addEventListener('load', postConfig, { once: true });
       container.innerHTML = '';
       container.appendChild(iframe);
