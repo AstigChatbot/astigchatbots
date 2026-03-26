@@ -26,6 +26,8 @@
   const project = decodeProject(script.dataset.project || '');
   const appUrl = normalizeUrl(script.dataset.appUrl || 'embed.html', script.src);
   const targetId = (script.dataset.target || '').trim();
+  const mode = (script.dataset.mode || '').trim().toLowerCase();
+  const isInline = mode === 'inline';
   const mountTarget = targetId ? document.getElementById(targetId) : document.body;
   if (!mountTarget) return;
 
@@ -40,28 +42,29 @@
   const iconSize = Math.max(20, Math.min(72, parseInt(script.dataset.iconSize || widget.iconSize || '26', 10) || 26));
 
   const root = document.createElement('div');
-  root.style.position = targetId ? 'relative' : 'fixed';
-  root.style.right = targetId ? 'auto' : '24px';
-  root.style.bottom = targetId ? 'auto' : '24px';
-  root.style.zIndex = '2147483000';
+  root.style.position = isInline || targetId ? 'relative' : 'fixed';
+  root.style.right = isInline || targetId ? 'auto' : '24px';
+  root.style.bottom = isInline || targetId ? 'auto' : '24px';
+  root.style.width = isInline ? '100%' : '';
+  root.style.zIndex = isInline ? 'auto' : '2147483000';
   root.style.fontFamily = "'Outfit', system-ui, sans-serif";
 
   const panel = document.createElement('div');
-  panel.style.position = targetId ? 'relative' : 'fixed';
-  panel.style.right = targetId ? '0' : '24px';
-  panel.style.bottom = targetId ? '0' : '104px';
-  panel.style.width = 'min(420px, calc(100vw - 24px))';
-  panel.style.height = 'min(760px, calc(100vh - 132px))';
+  panel.style.position = isInline || targetId ? 'relative' : 'fixed';
+  panel.style.right = isInline || targetId ? '0' : '24px';
+  panel.style.bottom = isInline || targetId ? '0' : '104px';
+  panel.style.width = isInline ? '100%' : 'min(420px, calc(100vw - 24px))';
+  panel.style.height = isInline ? '720px' : 'min(760px, calc(100vh - 132px))';
   panel.style.borderRadius = isTransparentTheme ? '0' : '24px';
   panel.style.overflow = 'hidden';
   panel.style.background = 'transparent';
   panel.style.border = '0';
   panel.style.boxShadow = 'none';
-  panel.style.opacity = '0';
-  panel.style.pointerEvents = 'none';
-  panel.style.transform = 'translateY(14px) scale(0.98)';
-  panel.style.transformOrigin = 'bottom right';
-  panel.style.transition = 'opacity 0.22s ease, transform 0.22s ease';
+  panel.style.opacity = isInline ? '1' : '0';
+  panel.style.pointerEvents = isInline ? 'auto' : 'none';
+  panel.style.transform = isInline ? 'none' : 'translateY(14px) scale(0.98)';
+  panel.style.transformOrigin = isInline ? 'center center' : 'bottom right';
+  panel.style.transition = isInline ? 'none' : 'opacity 0.22s ease, transform 0.22s ease';
 
   const frame = document.createElement('iframe');
   frame.title = label;
@@ -74,26 +77,28 @@
   frame.style.background = 'transparent';
   panel.appendChild(frame);
 
-  const launcher = document.createElement('button');
-  launcher.type = 'button';
-  launcher.setAttribute('aria-label', label);
-  launcher.title = `${label} - ${subtext}`;
-  launcher.style.width = '64px';
-  launcher.style.height = '64px';
-  launcher.style.borderRadius = shape === 'square' ? '12px' : shape === 'rounded' ? '18px' : '999px';
-  launcher.style.border = '1px solid rgba(255, 255, 255, 0.18)';
-  launcher.style.background = 'linear-gradient(135deg, #6d64ff 0%, #7f4bff 100%)';
-  launcher.style.boxShadow = is3d
-    ? '0 18px 36px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.16)'
-    : '0 18px 36px rgba(0, 0, 0, 0.45)';
-  launcher.style.cursor = 'pointer';
-  launcher.style.display = 'grid';
-  launcher.style.placeItems = 'center';
-  launcher.style.padding = '0';
-  launcher.style.position = targetId ? 'absolute' : 'fixed';
-  launcher.style.right = targetId ? '0' : '24px';
-  launcher.style.bottom = targetId ? '0' : '24px';
-  launcher.style.zIndex = '2147483001';
+  const launcher = isInline ? null : document.createElement('button');
+  if (launcher) {
+    launcher.type = 'button';
+    launcher.setAttribute('aria-label', label);
+    launcher.title = `${label} - ${subtext}`;
+    launcher.style.width = '64px';
+    launcher.style.height = '64px';
+    launcher.style.borderRadius = shape === 'square' ? '12px' : shape === 'rounded' ? '18px' : '999px';
+    launcher.style.border = '1px solid rgba(255, 255, 255, 0.18)';
+    launcher.style.background = 'linear-gradient(135deg, #6d64ff 0%, #7f4bff 100%)';
+    launcher.style.boxShadow = is3d
+      ? '0 18px 36px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.16)'
+      : '0 18px 36px rgba(0, 0, 0, 0.45)';
+    launcher.style.cursor = 'pointer';
+    launcher.style.display = 'grid';
+    launcher.style.placeItems = 'center';
+    launcher.style.padding = '0';
+    launcher.style.position = targetId ? 'absolute' : 'fixed';
+    launcher.style.right = targetId ? '0' : '24px';
+    launcher.style.bottom = targetId ? '0' : '24px';
+    launcher.style.zIndex = '2147483001';
+  }
 
   const icon = document.createElement('span');
   icon.style.display = 'block';
@@ -106,15 +111,17 @@
   icon.style.backgroundImage = iconUrl
     ? `url("${iconUrl.replace(/"/g, '%22')}")`
     : 'url("data:image/svg+xml,%3Csvg width=\'24\' height=\'24\' viewBox=\'0 0 24 24\' fill=\'none\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M4 4h16v12H7l-3 3V4z\' stroke=\'%23FFFFFF\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'/%3E%3Ccircle cx=\'9\' cy=\'10\' r=\'1.2\' fill=\'white\'/%3E%3Ccircle cx=\'12\' cy=\'10\' r=\'1.2\' fill=\'white\'/%3E%3Ccircle cx=\'15\' cy=\'10\' r=\'1.2\' fill=\'white\'/%3E%3C/svg%3E")';
-  launcher.appendChild(icon);
+  if (launcher) {
+    launcher.appendChild(icon);
+  }
 
-  if (anim === 'pulse') {
+  if (launcher && anim === 'pulse') {
     launcher.animate(
       [{ transform: 'scale(1)' }, { transform: 'scale(1.06)' }, { transform: 'scale(1)' }],
       { duration: 2000, iterations: Infinity, easing: 'ease-in-out' }
     );
   }
-  if (anim === 'float') {
+  if (launcher && anim === 'float') {
     launcher.animate(
       [{ transform: 'translateY(0)' }, { transform: 'translateY(-6px)' }, { transform: 'translateY(0)' }],
       { duration: 3000, iterations: Infinity, easing: 'ease-in-out' }
@@ -174,24 +181,32 @@
     launcher.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
   }
 
-  launcher.addEventListener('click', () => syncOpenState(!isOpen));
+  if (launcher) {
+    launcher.addEventListener('click', () => syncOpenState(!isOpen));
 
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && isOpen) {
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && isOpen) {
+        syncOpenState(false);
+      }
+    });
+
+    document.addEventListener('mousedown', (event) => {
+      if (!isOpen) return;
+      if (panel.contains(event.target) || launcher.contains(event.target)) return;
       syncOpenState(false);
-    }
-  });
-
-  document.addEventListener('mousedown', (event) => {
-    if (!isOpen) return;
-    if (panel.contains(event.target) || launcher.contains(event.target)) return;
-    syncOpenState(false);
-  });
+    });
+  }
 
   root.appendChild(panel);
-  root.appendChild(launcher);
+  if (launcher) {
+    root.appendChild(launcher);
+  }
   mountTarget.appendChild(root);
 
-  // Preload the iframe once the launcher is mounted so the first click only opens it.
-  ensureFrame();
+  if (isInline) {
+    ensureFrame();
+  } else {
+    // Preload the iframe once the launcher is mounted so the first click only opens it.
+    ensureFrame();
+  }
 })();
