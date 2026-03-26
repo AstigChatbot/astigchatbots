@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const sendBtn = document.getElementById('send-btn');
     const inputArea = document.querySelector('.input-area');
     const inputWrapper = document.querySelector('.input-wrapper');
+    const formInterface = document.querySelector('.form-interface');
     const restartBtn = document.getElementById('restart-btn');
     const downloadBtn = document.getElementById('download-btn');
     const emailBtn = document.getElementById('email-btn');
@@ -103,6 +104,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const footerStatus = document.getElementById('footer-status');
     const brandFooter = document.getElementById('brand-footer');
     const brandLink = document.getElementById('brand-link');
+    const converseBtn = document.getElementById('converse-menu-btn');
+    const converseDrawer = document.getElementById('converse-drawer');
+    const converseOverlay = document.getElementById('converse-overlay');
+    const converseClose = document.getElementById('converse-close');
+    const converseAssistantFontFamilySelect = document.getElementById('converse-assistant-font-family');
+    const converseAssistantFontSizeInput = document.getElementById('converse-assistant-font-size');
+    const converseAssistantAnimationSelect = document.getElementById('converse-assistant-animation');
+    const converseUserFontFamilySelect = document.getElementById('converse-user-font-family');
+    const converseUserFontSizeInput = document.getElementById('converse-user-font-size');
+    const converseUserAnimationSelect = document.getElementById('converse-user-animation');
+    const saveConverseSettingsBtn = document.getElementById('save-converse-settings');
+    const converseStatus = document.getElementById('converse-status');
     const headerDrawer = document.getElementById('header-drawer');
     const headerOverlay = document.getElementById('header-overlay');
     const headerClose = document.getElementById('header-close');
@@ -114,10 +127,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const headerShowEmailInput = document.getElementById('header-show-email');
     const headerShowDownloadInput = document.getElementById('header-show-download');
     const headerShowRestartInput = document.getElementById('header-show-restart');
+    const headerHomeLinkUrlInput = document.getElementById('header-home-link-url');
+    const headerHomeIconUrlInput = document.getElementById('header-home-icon-url');
+    const headerEmailIconUrlInput = document.getElementById('header-email-icon-url');
+    const headerDownloadIconUrlInput = document.getElementById('header-download-icon-url');
+    const headerRestartIconUrlInput = document.getElementById('header-restart-icon-url');
     const saveHeaderSettingsBtn = document.getElementById('save-header-settings');
     const headerStatus = document.getElementById('header-status');
     const headerActions = document.getElementById('header-actions');
     const homeBtn = document.getElementById('home-btn');
+    const defaultHeaderIcons = {
+        home: homeBtn?.innerHTML || '',
+        email: emailBtn?.innerHTML || '',
+        download: downloadBtn?.innerHTML || '',
+        restart: restartBtn?.innerHTML || ''
+    };
     const logoDrawer = document.getElementById('logo-drawer');
     const logoOverlay = document.getElementById('logo-overlay');
     const logoClose = document.getElementById('logo-close');
@@ -161,6 +185,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const questionFieldInput = document.getElementById('question-field');
     const questionTextInput = document.getElementById('question-text');
     const questionPlaceholderInput = document.getElementById('question-placeholder');
+    const questionTypeSelect = document.getElementById('question-type');
+    const questionOptionsInput = document.getElementById('question-options');
     const questionFontFamilySelect = document.getElementById('question-font-family');
     const questionFontSizeInput = document.getElementById('question-font-size');
     const questionAnimStyleSelect = document.getElementById('question-anim-style');
@@ -207,6 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const CURRENT_EMBED_COMMIT = '1682f3d';
     const DEFAULT_EMBED_RUNTIME_BASE = `https://cdn.jsdelivr.net/gh/AstigChatbot/astigchatbots@${CURRENT_EMBED_COMMIT}`;
     const DEFAULT_EMBED_APP_BASE = `https://cdn.jsdelivr.net/gh/AstigChatbot/astigchatbots@${CURRENT_EMBED_COMMIT}`;
+    const RSVP_FAILURE_MESSAGE = "⚠️ Oops! We couldn't process your RSVP. Please make sure all your details are correct and try again.";
     const LOGO_PRESETS = {
         brand: 'https://widjets.astigmedia.com/img/main-logo.png',
         assistant: 'https://widjets.astigmedia.com/img/Assistant-logo.png',
@@ -246,6 +273,12 @@ document.addEventListener('DOMContentLoaded', () => {
         footerFontSize: 'cherry.footer.fontSize',
         footerAnimation: 'cherry.footer.animation',
         footerBackground: 'cherry.footer.background',
+        converseAssistantFontFamily: 'cherry.converse.assistant.fontFamily',
+        converseAssistantFontSize: 'cherry.converse.assistant.fontSize',
+        converseAssistantAnimation: 'cherry.converse.assistant.animation',
+        converseUserFontFamily: 'cherry.converse.user.fontFamily',
+        converseUserFontSize: 'cherry.converse.user.fontSize',
+        converseUserAnimation: 'cherry.converse.user.animation',
         headerTitle: 'cherry.header.title',
         headerSubtitle: 'cherry.header.subtitle',
         headerShowStatusDot: 'cherry.header.showStatusDot',
@@ -254,6 +287,11 @@ document.addEventListener('DOMContentLoaded', () => {
         headerShowEmail: 'cherry.header.showEmail',
         headerShowDownload: 'cherry.header.showDownload',
         headerShowRestart: 'cherry.header.showRestart',
+        headerHomeLinkUrl: 'cherry.header.homeLinkUrl',
+        headerHomeIconUrl: 'cherry.header.homeIconUrl',
+        headerEmailIconUrl: 'cherry.header.emailIconUrl',
+        headerDownloadIconUrl: 'cherry.header.downloadIconUrl',
+        headerRestartIconUrl: 'cherry.header.restartIconUrl',
         themeBackground: 'cherry.theme.background',
         themeStyle: 'cherry.theme.style',
         logoUrl: 'cherry.logo.url',
@@ -413,6 +451,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (footerBtn) {
         footerBtn.addEventListener('click', () => openFooterDrawer(true));
     }
+    if (converseBtn) {
+        converseBtn.addEventListener('click', () => openConverseDrawer(true));
+    }
     if (logoBtn) {
         logoBtn.addEventListener('click', () => openLogoDrawer(true));
     }
@@ -430,7 +471,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (launcher) {
-        launcher.addEventListener('click', () => openWidgetDrawer(true));
+        launcher.addEventListener('click', () => {
+            if (document.body.classList.contains('chatbot-minimized')) {
+                setChatbotMinimized(false);
+                return;
+            }
+            openWidgetDrawer(true);
+        });
     }
 
     if (embedBtn) {
@@ -532,9 +579,29 @@ document.addEventListener('DOMContentLoaded', () => {
             input.addEventListener('change', previewHeaderSettings);
         }
     });
+    [headerHomeLinkUrlInput, headerHomeIconUrlInput, headerEmailIconUrlInput, headerDownloadIconUrlInput, headerRestartIconUrlInput].forEach(input => {
+        if (input) {
+            input.addEventListener('input', previewHeaderSettings);
+        }
+    });
     if (logoOverlay) {
         logoOverlay.addEventListener('click', () => openLogoDrawer(false));
     }
+    if (converseOverlay) {
+        converseOverlay.addEventListener('click', () => openConverseDrawer(false));
+    }
+    if (converseClose) {
+        converseClose.addEventListener('click', () => openConverseDrawer(false));
+    }
+    if (saveConverseSettingsBtn) {
+        saveConverseSettingsBtn.addEventListener('click', saveConverseSettings);
+    }
+    [converseAssistantFontFamilySelect, converseAssistantFontSizeInput, converseAssistantAnimationSelect, converseUserFontFamilySelect, converseUserFontSizeInput, converseUserAnimationSelect].forEach(input => {
+        if (input) {
+            input.addEventListener('input', previewConverseSettings);
+            input.addEventListener('change', previewConverseSettings);
+        }
+    });
     if (logoClose) {
         logoClose.addEventListener('click', () => openLogoDrawer(false));
     }
@@ -861,11 +928,19 @@ document.addEventListener('DOMContentLoaded', () => {
             return getDefaultSteps();
         }
 
-        const nextSteps = candidate.map((step, index) => ({
-            field: String(step?.field || `field_${index + 1}`).trim() || `field_${index + 1}`,
-            question: String(step?.question || '').trim() || `Question ${index + 1}`,
-            placeholder: String(step?.placeholder || 'Type here...').trim() || 'Type here...'
-        }));
+        const nextSteps = candidate.map((step, index) => {
+            const type = step?.type === 'multiple_choice' ? 'multiple_choice' : 'text';
+            const options = Array.isArray(step?.options)
+                ? step.options.map(option => String(option || '').trim()).filter(Boolean)
+                : [];
+            return {
+                field: String(step?.field || `field_${index + 1}`).trim() || `field_${index + 1}`,
+                question: String(step?.question || '').trim() || `Question ${index + 1}`,
+                placeholder: String(step?.placeholder || 'Type here...').trim() || 'Type here...',
+                type,
+                options: type === 'multiple_choice' ? options : []
+            };
+        });
 
         return nextSteps.length > 0 ? nextSteps : getDefaultSteps();
     }
@@ -1316,7 +1391,12 @@ document.addEventListener('DOMContentLoaded', () => {
             showHome: true,
             showEmail: true,
             showDownload: true,
-            showRestart: true
+            showRestart: true,
+            homeLinkUrl: 'https://deejayedson.com/',
+            homeIconUrl: '',
+            emailIconUrl: '',
+            downloadIconUrl: '',
+            restartIconUrl: ''
         };
     }
 
@@ -1332,8 +1412,23 @@ document.addEventListener('DOMContentLoaded', () => {
             showHome: candidate?.showHome !== false,
             showEmail: candidate?.showEmail !== false,
             showDownload: candidate?.showDownload !== false,
-            showRestart: candidate?.showRestart !== false
+            showRestart: candidate?.showRestart !== false,
+            homeLinkUrl: String(candidate?.homeLinkUrl || defaults.homeLinkUrl).trim() || defaults.homeLinkUrl,
+            homeIconUrl: String(candidate?.homeIconUrl || '').trim(),
+            emailIconUrl: String(candidate?.emailIconUrl || '').trim(),
+            downloadIconUrl: String(candidate?.downloadIconUrl || '').trim(),
+            restartIconUrl: String(candidate?.restartIconUrl || '').trim()
         };
+    }
+
+    function applyHeaderActionIcon(element, iconUrl, fallbackMarkup, altLabel) {
+        if (!element) return;
+        const resolvedUrl = resolveAvatarUrl(iconUrl);
+        if (resolvedUrl) {
+            element.innerHTML = `<img src="${resolvedUrl.replace(/"/g, '&quot;')}" alt="${altLabel.replace(/"/g, '&quot;')}">`;
+            return;
+        }
+        element.innerHTML = fallbackMarkup;
     }
 
     function setHeaderStatus(text, type = 'info') {
@@ -1378,10 +1473,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (liveStatusDot) {
             liveStatusDot.hidden = !nextSettings.showStatusDot;
         }
+        if (homeBtn) {
+            homeBtn.href = nextSettings.homeLinkUrl;
+        }
         if (homeBtn) homeBtn.style.display = nextSettings.showHome ? '' : 'none';
         if (emailBtn) emailBtn.style.display = nextSettings.showEmail ? '' : 'none';
         if (downloadBtn) downloadBtn.style.display = nextSettings.showDownload ? '' : 'none';
         if (restartBtn) restartBtn.style.display = nextSettings.showRestart ? '' : 'none';
+        applyHeaderActionIcon(homeBtn, nextSettings.homeIconUrl, defaultHeaderIcons.home, 'Home');
+        applyHeaderActionIcon(emailBtn, nextSettings.emailIconUrl, defaultHeaderIcons.email, 'Email');
+        applyHeaderActionIcon(downloadBtn, nextSettings.downloadIconUrl, defaultHeaderIcons.download, 'Download');
+        applyHeaderActionIcon(restartBtn, nextSettings.restartIconUrl, defaultHeaderIcons.restart, 'Restart');
         if (headerActions) {
             headerActions.style.gap = '15px';
         }
@@ -1396,7 +1498,12 @@ document.addEventListener('DOMContentLoaded', () => {
             showHome: safeStorageGet(STORAGE_KEYS.headerShowHome, 'true') !== 'false',
             showEmail: safeStorageGet(STORAGE_KEYS.headerShowEmail, 'true') !== 'false',
             showDownload: safeStorageGet(STORAGE_KEYS.headerShowDownload, 'true') !== 'false',
-            showRestart: safeStorageGet(STORAGE_KEYS.headerShowRestart, 'true') !== 'false'
+            showRestart: safeStorageGet(STORAGE_KEYS.headerShowRestart, 'true') !== 'false',
+            homeLinkUrl: safeStorageGet(STORAGE_KEYS.headerHomeLinkUrl, getDefaultHeaderSettings().homeLinkUrl),
+            homeIconUrl: safeStorageGet(STORAGE_KEYS.headerHomeIconUrl, ''),
+            emailIconUrl: safeStorageGet(STORAGE_KEYS.headerEmailIconUrl, ''),
+            downloadIconUrl: safeStorageGet(STORAGE_KEYS.headerDownloadIconUrl, ''),
+            restartIconUrl: safeStorageGet(STORAGE_KEYS.headerRestartIconUrl, '')
         });
 
         if (headerTitleInput) headerTitleInput.value = settings.title;
@@ -1407,6 +1514,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (headerShowEmailInput) headerShowEmailInput.checked = settings.showEmail;
         if (headerShowDownloadInput) headerShowDownloadInput.checked = settings.showDownload;
         if (headerShowRestartInput) headerShowRestartInput.checked = settings.showRestart;
+        if (headerHomeLinkUrlInput) headerHomeLinkUrlInput.value = settings.homeLinkUrl;
+        if (headerHomeIconUrlInput) headerHomeIconUrlInput.value = settings.homeIconUrl;
+        if (headerEmailIconUrlInput) headerEmailIconUrlInput.value = settings.emailIconUrl;
+        if (headerDownloadIconUrlInput) headerDownloadIconUrlInput.value = settings.downloadIconUrl;
+        if (headerRestartIconUrlInput) headerRestartIconUrlInput.value = settings.restartIconUrl;
         applyHeaderSettings(settings);
     }
 
@@ -1419,7 +1531,12 @@ document.addEventListener('DOMContentLoaded', () => {
             showHome: !!headerShowHomeInput?.checked,
             showEmail: !!headerShowEmailInput?.checked,
             showDownload: !!headerShowDownloadInput?.checked,
-            showRestart: !!headerShowRestartInput?.checked
+            showRestart: !!headerShowRestartInput?.checked,
+            homeLinkUrl: headerHomeLinkUrlInput?.value || '',
+            homeIconUrl: headerHomeIconUrlInput?.value || '',
+            emailIconUrl: headerEmailIconUrlInput?.value || '',
+            downloadIconUrl: headerDownloadIconUrlInput?.value || '',
+            restartIconUrl: headerRestartIconUrlInput?.value || ''
         });
 
         safeStorageSet(STORAGE_KEYS.headerTitle, settings.title);
@@ -1430,6 +1547,11 @@ document.addEventListener('DOMContentLoaded', () => {
         safeStorageSet(STORAGE_KEYS.headerShowEmail, String(settings.showEmail));
         safeStorageSet(STORAGE_KEYS.headerShowDownload, String(settings.showDownload));
         safeStorageSet(STORAGE_KEYS.headerShowRestart, String(settings.showRestart));
+        safeStorageSet(STORAGE_KEYS.headerHomeLinkUrl, settings.homeLinkUrl);
+        safeStorageSet(STORAGE_KEYS.headerHomeIconUrl, settings.homeIconUrl);
+        safeStorageSet(STORAGE_KEYS.headerEmailIconUrl, settings.emailIconUrl);
+        safeStorageSet(STORAGE_KEYS.headerDownloadIconUrl, settings.downloadIconUrl);
+        safeStorageSet(STORAGE_KEYS.headerRestartIconUrl, settings.restartIconUrl);
         applyHeaderSettings(settings);
         flashButton(saveHeaderSettingsBtn, 'Applied');
         setHeaderStatus('Header content and visibility updated.', 'success');
@@ -1444,7 +1566,12 @@ document.addEventListener('DOMContentLoaded', () => {
             showHome: !!headerShowHomeInput?.checked,
             showEmail: !!headerShowEmailInput?.checked,
             showDownload: !!headerShowDownloadInput?.checked,
-            showRestart: !!headerShowRestartInput?.checked
+            showRestart: !!headerShowRestartInput?.checked,
+            homeLinkUrl: headerHomeLinkUrlInput?.value || '',
+            homeIconUrl: headerHomeIconUrlInput?.value || '',
+            emailIconUrl: headerEmailIconUrlInput?.value || '',
+            downloadIconUrl: headerDownloadIconUrlInput?.value || '',
+            restartIconUrl: headerRestartIconUrlInput?.value || ''
         });
         applyHeaderSettings(settings);
         setHeaderStatus('Header preview updated.', 'success');
@@ -1538,6 +1665,120 @@ document.addEventListener('DOMContentLoaded', () => {
         applyFooterSettings(settings);
         flashButton(saveFooterSettingsBtn, 'Applied');
         setFooterStatus('Footer branding applied to the builder preview.', 'success');
+    }
+
+    function getDefaultConverseSettings() {
+        return {
+            assistant: {
+                fontFamily: "'Outfit', sans-serif",
+                fontSize: 24,
+                animation: 'none'
+            },
+            user: {
+                fontFamily: "'Outfit', sans-serif",
+                fontSize: 16,
+                animation: 'none'
+            }
+        };
+    }
+
+    function sanitizeConverseSettings(candidate = {}) {
+        const defaults = getDefaultConverseSettings();
+        const assistantFontSize = Number.parseInt(candidate?.assistant?.fontSize, 10);
+        const userFontSize = Number.parseInt(candidate?.user?.fontSize, 10);
+        return {
+            assistant: {
+                fontFamily: String(candidate?.assistant?.fontFamily || defaults.assistant.fontFamily).trim() || defaults.assistant.fontFamily,
+                fontSize: Number.isFinite(assistantFontSize) ? Math.min(42, Math.max(16, assistantFontSize)) : defaults.assistant.fontSize,
+                animation: ['none', 'fade', 'glow'].includes(candidate?.assistant?.animation) ? candidate.assistant.animation : defaults.assistant.animation
+            },
+            user: {
+                fontFamily: String(candidate?.user?.fontFamily || defaults.user.fontFamily).trim() || defaults.user.fontFamily,
+                fontSize: Number.isFinite(userFontSize) ? Math.min(32, Math.max(14, userFontSize)) : defaults.user.fontSize,
+                animation: ['none', 'fade', 'glow'].includes(candidate?.user?.animation) ? candidate.user.animation : defaults.user.animation
+            }
+        };
+    }
+
+    function applyConverseSettings(settings) {
+        const nextSettings = sanitizeConverseSettings(settings);
+        document.documentElement.style.setProperty('--assistant-response-font-family', nextSettings.assistant.fontFamily);
+        document.documentElement.style.setProperty('--assistant-response-font-size', `${nextSettings.assistant.fontSize}px`);
+        document.documentElement.style.setProperty('--user-response-font-family', nextSettings.user.fontFamily);
+        document.documentElement.style.setProperty('--user-response-font-size', `${nextSettings.user.fontSize}px`);
+        if (flowContainer) {
+            flowContainer.classList.remove('assistant-anim-none', 'assistant-anim-fade', 'assistant-anim-glow', 'user-anim-none', 'user-anim-fade', 'user-anim-glow');
+            flowContainer.classList.add(`assistant-anim-${nextSettings.assistant.animation}`, `user-anim-${nextSettings.user.animation}`);
+        }
+    }
+
+    function hydrateConverseSettings() {
+        const settings = sanitizeConverseSettings({
+            assistant: {
+                fontFamily: safeStorageGet(STORAGE_KEYS.converseAssistantFontFamily, getDefaultConverseSettings().assistant.fontFamily),
+                fontSize: safeStorageGet(STORAGE_KEYS.converseAssistantFontSize, String(getDefaultConverseSettings().assistant.fontSize)),
+                animation: safeStorageGet(STORAGE_KEYS.converseAssistantAnimation, getDefaultConverseSettings().assistant.animation)
+            },
+            user: {
+                fontFamily: safeStorageGet(STORAGE_KEYS.converseUserFontFamily, getDefaultConverseSettings().user.fontFamily),
+                fontSize: safeStorageGet(STORAGE_KEYS.converseUserFontSize, String(getDefaultConverseSettings().user.fontSize)),
+                animation: safeStorageGet(STORAGE_KEYS.converseUserAnimation, getDefaultConverseSettings().user.animation)
+            }
+        });
+        if (converseAssistantFontFamilySelect) converseAssistantFontFamilySelect.value = settings.assistant.fontFamily;
+        if (converseAssistantFontSizeInput) converseAssistantFontSizeInput.value = String(settings.assistant.fontSize);
+        if (converseAssistantAnimationSelect) converseAssistantAnimationSelect.value = settings.assistant.animation;
+        if (converseUserFontFamilySelect) converseUserFontFamilySelect.value = settings.user.fontFamily;
+        if (converseUserFontSizeInput) converseUserFontSizeInput.value = String(settings.user.fontSize);
+        if (converseUserAnimationSelect) converseUserAnimationSelect.value = settings.user.animation;
+        applyConverseSettings(settings);
+    }
+
+    function saveConverseSettings() {
+        const settings = sanitizeConverseSettings({
+            assistant: {
+                fontFamily: converseAssistantFontFamilySelect?.value || '',
+                fontSize: converseAssistantFontSizeInput?.value || '',
+                animation: converseAssistantAnimationSelect?.value || ''
+            },
+            user: {
+                fontFamily: converseUserFontFamilySelect?.value || '',
+                fontSize: converseUserFontSizeInput?.value || '',
+                animation: converseUserAnimationSelect?.value || ''
+            }
+        });
+        safeStorageSet(STORAGE_KEYS.converseAssistantFontFamily, settings.assistant.fontFamily);
+        safeStorageSet(STORAGE_KEYS.converseAssistantFontSize, String(settings.assistant.fontSize));
+        safeStorageSet(STORAGE_KEYS.converseAssistantAnimation, settings.assistant.animation);
+        safeStorageSet(STORAGE_KEYS.converseUserFontFamily, settings.user.fontFamily);
+        safeStorageSet(STORAGE_KEYS.converseUserFontSize, String(settings.user.fontSize));
+        safeStorageSet(STORAGE_KEYS.converseUserAnimation, settings.user.animation);
+        applyConverseSettings(settings);
+        flashButton(saveConverseSettingsBtn, 'Applied');
+        if (converseStatus) converseStatus.textContent = 'Converse typography applied to the builder preview.';
+    }
+
+    function previewConverseSettings() {
+        const settings = sanitizeConverseSettings({
+            assistant: {
+                fontFamily: converseAssistantFontFamilySelect?.value || '',
+                fontSize: converseAssistantFontSizeInput?.value || '',
+                animation: converseAssistantAnimationSelect?.value || ''
+            },
+            user: {
+                fontFamily: converseUserFontFamilySelect?.value || '',
+                fontSize: converseUserFontSizeInput?.value || '',
+                animation: converseUserAnimationSelect?.value || ''
+            }
+        });
+        applyConverseSettings(settings);
+    }
+
+    function openConverseDrawer(show) {
+        if (!converseDrawer || !converseOverlay) return;
+        converseDrawer.classList.toggle('open', show);
+        converseOverlay.classList.toggle('show', show);
+        converseDrawer.setAttribute('aria-hidden', show ? 'false' : 'true');
     }
 
     function getDefaultLogoSettings() {
@@ -1795,6 +2036,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 animation: footerAnimationSelect?.value || safeStorageGet(STORAGE_KEYS.footerAnimation, getDefaultFooterSettings().animation),
                 background: footerBackgroundInput?.value || safeStorageGet(STORAGE_KEYS.footerBackground, getDefaultFooterSettings().background)
             }),
+            converse: sanitizeConverseSettings({
+                assistant: {
+                    fontFamily: converseAssistantFontFamilySelect?.value || safeStorageGet(STORAGE_KEYS.converseAssistantFontFamily, getDefaultConverseSettings().assistant.fontFamily),
+                    fontSize: converseAssistantFontSizeInput?.value || safeStorageGet(STORAGE_KEYS.converseAssistantFontSize, String(getDefaultConverseSettings().assistant.fontSize)),
+                    animation: converseAssistantAnimationSelect?.value || safeStorageGet(STORAGE_KEYS.converseAssistantAnimation, getDefaultConverseSettings().assistant.animation)
+                },
+                user: {
+                    fontFamily: converseUserFontFamilySelect?.value || safeStorageGet(STORAGE_KEYS.converseUserFontFamily, getDefaultConverseSettings().user.fontFamily),
+                    fontSize: converseUserFontSizeInput?.value || safeStorageGet(STORAGE_KEYS.converseUserFontSize, String(getDefaultConverseSettings().user.fontSize)),
+                    animation: converseUserAnimationSelect?.value || safeStorageGet(STORAGE_KEYS.converseUserAnimation, getDefaultConverseSettings().user.animation)
+                }
+            }),
             theme: sanitizeThemeSettings({
                 background: themeBackgroundInput?.value || safeStorageGet(STORAGE_KEYS.themeBackground, getDefaultThemeSettings().background),
                 style: Array.from(themeStyleButtons).find(btn => btn.classList.contains('active'))?.dataset.themeStyle || safeStorageGet(STORAGE_KEYS.themeStyle, getDefaultThemeSettings().style)
@@ -1807,7 +2060,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 showHome: !!headerShowHomeInput?.checked,
                 showEmail: !!headerShowEmailInput?.checked,
                 showDownload: !!headerShowDownloadInput?.checked,
-                showRestart: !!headerShowRestartInput?.checked
+                showRestart: !!headerShowRestartInput?.checked,
+                homeLinkUrl: headerHomeLinkUrlInput?.value || safeStorageGet(STORAGE_KEYS.headerHomeLinkUrl, getDefaultHeaderSettings().homeLinkUrl),
+                homeIconUrl: headerHomeIconUrlInput?.value || safeStorageGet(STORAGE_KEYS.headerHomeIconUrl, ''),
+                emailIconUrl: headerEmailIconUrlInput?.value || safeStorageGet(STORAGE_KEYS.headerEmailIconUrl, ''),
+                downloadIconUrl: headerDownloadIconUrlInput?.value || safeStorageGet(STORAGE_KEYS.headerDownloadIconUrl, ''),
+                restartIconUrl: headerRestartIconUrlInput?.value || safeStorageGet(STORAGE_KEYS.headerRestartIconUrl, '')
             }),
             video: sanitizeVideoSettings({
                 enabled: videoEnabledInput?.checked ?? (safeStorageGet(STORAGE_KEYS.videoEnabled, 'true') !== 'false'),
@@ -2105,6 +2363,15 @@ document.addEventListener('DOMContentLoaded', () => {
             applyFooterSettings(footerSettings);
         }
 
+        const converseSettings = sanitizeConverseSettings(snapshot?.converse || {});
+        if (converseAssistantFontFamilySelect) converseAssistantFontFamilySelect.value = converseSettings.assistant.fontFamily;
+        if (converseAssistantFontSizeInput) converseAssistantFontSizeInput.value = String(converseSettings.assistant.fontSize);
+        if (converseAssistantAnimationSelect) converseAssistantAnimationSelect.value = converseSettings.assistant.animation;
+        if (converseUserFontFamilySelect) converseUserFontFamilySelect.value = converseSettings.user.fontFamily;
+        if (converseUserFontSizeInput) converseUserFontSizeInput.value = String(converseSettings.user.fontSize);
+        if (converseUserAnimationSelect) converseUserAnimationSelect.value = converseSettings.user.animation;
+        applyConverseSettings(converseSettings);
+
         const nextThemeSettings = sanitizeThemeSettings(snapshot?.theme || {});
         writeThemeFormSettings(nextThemeSettings);
         if (themeBackgroundInput && themeStyleButtons.length > 0) {
@@ -2122,6 +2389,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (headerShowEmailInput) headerShowEmailInput.checked = headerSettings.showEmail !== false;
         if (headerShowDownloadInput) headerShowDownloadInput.checked = headerSettings.showDownload !== false;
         if (headerShowRestartInput) headerShowRestartInput.checked = headerSettings.showRestart !== false;
+        if (headerHomeLinkUrlInput) headerHomeLinkUrlInput.value = headerSettings.homeLinkUrl || getDefaultHeaderSettings().homeLinkUrl;
+        if (headerHomeIconUrlInput) headerHomeIconUrlInput.value = headerSettings.homeIconUrl || '';
+        if (headerEmailIconUrlInput) headerEmailIconUrlInput.value = headerSettings.emailIconUrl || '';
+        if (headerDownloadIconUrlInput) headerDownloadIconUrlInput.value = headerSettings.downloadIconUrl || '';
+        if (headerRestartIconUrlInput) headerRestartIconUrlInput.value = headerSettings.restartIconUrl || '';
         if (headerTitleInput && headerSubtitleInput && headerShowStatusDotInput && headerShowSubtitleInput && headerShowHomeInput && headerShowEmailInput && headerShowDownloadInput && headerShowRestartInput) {
             saveHeaderSettings();
         } else {
@@ -2229,6 +2501,7 @@ document.addEventListener('DOMContentLoaded', () => {
     hydrateQuestionnaireSettings();
     hydrateAvatarSettings();
     hydrateFooterSettings();
+    hydrateConverseSettings();
     hydrateThemeSettings();
     hydrateHeaderSettings();
     hydrateVideoSettings();
@@ -2265,18 +2538,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function setPrimaryInputMode(mode) {
         const showInlineNameForm = mode === 'split-name';
+        const showMultipleChoice = mode === 'multiple-choice';
         if (inputArea) {
-            inputArea.hidden = false;
-            inputArea.style.display = '';
-            inputArea.setAttribute('aria-hidden', 'false');
+            inputArea.hidden = showMultipleChoice;
+            inputArea.style.display = showMultipleChoice ? 'none' : '';
+            inputArea.setAttribute('aria-hidden', showMultipleChoice ? 'true' : 'false');
         }
         if (inputWrapper) {
             inputWrapper.hidden = showInlineNameForm;
             inputWrapper.style.display = showInlineNameForm ? 'none' : '';
         }
         if (sendBtn) {
-            sendBtn.hidden = false;
-            sendBtn.style.display = '';
+            sendBtn.hidden = showMultipleChoice;
+            sendBtn.style.display = showMultipleChoice ? 'none' : '';
         }
         if (inputArea) inputArea.classList.toggle('input-area--inline-mode', showInlineNameForm);
         if (sendBtn) sendBtn.textContent = showInlineNameForm ? 'Continue' : 'Submit';
@@ -2340,6 +2614,72 @@ document.addEventListener('DOMContentLoaded', () => {
         return { firstName, lastName, fullName };
     }
 
+    function isMultipleChoiceStep(step = steps[currentStep]) {
+        return step?.type === 'multiple_choice' && Array.isArray(step?.options) && step.options.length > 0;
+    }
+
+    function renderMultipleChoiceButtons(stepDiv, stepData) {
+        const buttonGroup = document.createElement('div');
+        buttonGroup.className = 'choice-button-group';
+
+        stepData.options.forEach(option => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'choice-button';
+            button.textContent = option;
+            button.addEventListener('click', () => {
+                buttonGroup.querySelectorAll('.choice-button').forEach(item => {
+                    item.disabled = true;
+                    item.classList.remove('choice-button--selected');
+                });
+                button.classList.add('choice-button--selected');
+                processStepAnswer(option);
+            });
+            buttonGroup.appendChild(button);
+        });
+
+        stepDiv.appendChild(buttonGroup);
+    }
+
+    function processStepAnswer(text, splitNameValues = null) {
+        if (!text) return;
+
+        addToHistory(text);
+
+        if (isAskingForEmail) {
+            formData.email = text;
+            isAskingForEmail = false;
+            archiveCurrentStep();
+            formData.inquiry = `[User provided email: ${text}]`;
+            userInput.value = '';
+            scrollToBottom();
+            submitForm();
+            return;
+        }
+
+        if (currentStep < steps.length) {
+            const currentField = steps[currentStep].field;
+            if (splitNameValues) {
+                formData[currentField] = splitNameValues.firstName;
+                formData.firstName = splitNameValues.firstName;
+                formData.lastName = splitNameValues.lastName;
+            } else {
+                formData[currentField] = text;
+            }
+
+            currentStep++;
+            userInput.value = '';
+            renderStep();
+            return;
+        }
+
+        archiveCurrentStep();
+        formData.inquiry = text;
+        userInput.value = '';
+        scrollToBottom();
+        submitForm();
+    }
+
     function renderStep() {
         // Clear previous 'current-step' classes but keep history
         archiveCurrentStep();
@@ -2369,6 +2709,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderSplitNameFields(stepDiv);
                 userInput.value = '';
                 userInput.disabled = true;
+            } else if (isMultipleChoiceStep(stepData)) {
+                setPrimaryInputMode('multiple-choice');
+                renderMultipleChoiceButtons(stepDiv, stepData);
+                userInput.value = '';
+                userInput.disabled = true;
             } else {
                 setPrimaryInputMode('default');
                 userInput.placeholder = stepData.placeholder;
@@ -2394,7 +2739,7 @@ document.addEventListener('DOMContentLoaded', () => {
             qText = qText.replace(/\{name\}/g, formData.name);
         }
         const emoji = (questionnaireSettings.emoji || '').trim();
-        return emoji ? `${emoji} ${qText}` : qText;
+        return emoji ? `<span class="question-emoji">${emoji}</span> ${qText}` : qText;
     }
 
     function getQuestionTypingSpeed() {
@@ -2428,6 +2773,60 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         return lines.map(line => `&bull; ${escapeHtml(line)}`).join('<br>');
+    }
+
+    function shouldOfferRsvpRecovery(botReply) {
+        return String(botReply || '').trim() === RSVP_FAILURE_MESSAGE;
+    }
+
+    function setChatbotMinimized(minimized) {
+        document.body.classList.toggle('chatbot-minimized', !!minimized);
+        if (launcher) {
+            launcher.setAttribute('aria-expanded', minimized ? 'false' : 'true');
+        }
+        if (!minimized) {
+            setTimeout(() => focusPrimaryResponseInput(), 120);
+        }
+    }
+
+    function minimizeChatbot() {
+        if (window.parent && window.parent !== window) {
+            try {
+                window.parent.postMessage({ type: 'CHERRY_EMBED_MINIMIZE' }, '*');
+                return;
+            } catch (error) {
+                console.warn('Cherry minimize request failed.', error);
+            }
+        }
+
+        setChatbotMinimized(true);
+    }
+
+    function appendRsvpRecoveryActions(stepDiv, botReply) {
+        if (!stepDiv || !shouldOfferRsvpRecovery(botReply) || stepDiv.querySelector('.rsvp-recovery-actions')) {
+            return;
+        }
+
+        const buttonGroup = document.createElement('div');
+        buttonGroup.className = 'choice-button-group rsvp-recovery-actions';
+        buttonGroup.setAttribute('role', 'group');
+        buttonGroup.setAttribute('aria-label', 'RSVP recovery options');
+
+        const yesButton = document.createElement('button');
+        yesButton.type = 'button';
+        yesButton.className = 'choice-button';
+        yesButton.textContent = 'Yes';
+        yesButton.dataset.recoveryAction = 'refresh';
+
+        const noButton = document.createElement('button');
+        noButton.type = 'button';
+        noButton.className = 'choice-button';
+        noButton.textContent = 'No';
+        noButton.dataset.recoveryAction = 'minimize';
+
+        buttonGroup.appendChild(yesButton);
+        buttonGroup.appendChild(noButton);
+        stepDiv.appendChild(buttonGroup);
     }
 
     function focusPrimaryResponseInput() {
@@ -2532,53 +2931,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (!text) return;
-
-        // Show Answer visually
-        addToHistory(text);
-
-        if (isAskingForEmail) {
-            // Handle Email Input
-            formData.email = text;
-            isAskingForEmail = false;
-
-            // Archive and send logic similar to continuous chat
-            archiveCurrentStep();
-
-            // Store original inquiry if needed, or just append details
-            // Temporarily piggyback on inquiry to ensure it sends useful context if webhook isn't updated to look for email field explicitly
-            // But we also have formData.email set
-
-            // We can send a specific 'inquiry' saying user provided email
-            formData.inquiry = `[User provided email: ${text}]`;
-
-            userInput.value = '';
-            scrollToBottom();
-            submitForm();
-            return;
-        }
-
-        if (currentStep < steps.length) {
-            // Save Data for wizard steps
-            const currentField = steps[currentStep].field;
-            if (splitNameValues) {
-                formData[currentField] = splitNameValues.firstName;
-                formData.firstName = splitNameValues.firstName;
-                formData.lastName = splitNameValues.lastName;
-            } else {
-                formData[currentField] = text;
-            }
-
-            currentStep++;
-            userInput.value = '';
-            renderStep();
-        } else {
-            // Continuous Chat Mode
-            archiveCurrentStep();
-            formData.inquiry = text; // Send new text as inquiry
-            userInput.value = '';
-            scrollToBottom(); // Scroll after user message archives
-            submitForm();
-        }
+        processStepAnswer(text, splitNameValues);
     }
 
     function archiveCurrentStep() {
@@ -2635,85 +2988,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
         try {
-            const hasWebhookControls = !!(webhookProdInput && webhookTestInput && webhookChatInput);
-            if (hasWebhookControls) {
-                const activeMode = safeStorageGet(STORAGE_KEYS.webhookActive, 'prod') || 'prod';
-                setActiveWebhook(activeMode, false);
-            }
-            console.log("Submitting to:", currentWebhookUrl); // Debug log
-            const collectedFields = Object.fromEntries(
-                Object.entries(formData).filter(([key, value]) =>
-                    key !== 'sessionId' &&
-                    typeof value === 'string' &&
-                    value.trim()
-                )
-            );
-            const findFieldValue = (patterns) => {
-                for (const [key, value] of Object.entries(collectedFields)) {
-                    if (patterns.some(pattern => pattern.test(key))) {
-                        return value;
-                    }
-                }
-                return '';
-            };
-            const normalizedEmail = formData.email || findFieldValue([/email/i]);
-            const firstName = findFieldValue([/first[\s_-]*name/i]);
-            const lastName = findFieldValue([/last[\s_-]*name/i]);
-            const genericName = formData.name || findFieldValue([/^name$/i, /full[\s_-]*name/i]);
-            const normalizedName = genericName || [firstName, lastName].filter(Boolean).join(' ').trim();
-            const normalizedInquiry = formData.inquiry || findFieldValue([/inquiry/i, /message/i, /details/i, /reason/i, /topic/i, /subject/i]);
-            const fallbackChatInput = normalizedInquiry
-                || Object.entries(collectedFields).map(([key, value]) => `${key}: ${value}`).join('\n')
-                || normalizedEmail
-                || normalizedName
-                || '';
+            const metadata = {};
+            Object.entries(formData).forEach(([key, value]) => {
+                if (key === 'sessionId') return;
+                metadata[key] = value || '';
+            });
+
             const payload = {
-                ...formData,
                 action: 'sendMessage',
-                chatInput: fallbackChatInput,
-                metadata: {
-                    name: normalizedName || '',
-                    email: normalizedEmail || '',
-                    inquiry: normalizedInquiry || '',
-                    fields: collectedFields
-                }
+                sessionId: formData.sessionId,
+                chatInput: formData.inquiry || formData.email || formData.name || '',
+                metadata
             };
+
             const response = await fetch(currentWebhookUrl, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json'
+                },
                 body: JSON.stringify(payload)
             });
 
             const responseText = await response.text();
-            let data;
-            try {
-                data = responseText ? JSON.parse(responseText) : {};
-            } catch (e) {
-                console.warn("Could not parse JSON response, using text:", e);
-                data = { text: responseText };
-            }
-
-            console.log("Webhook Response:", data); // Debug log
-
-            let botReply = "Thank you for reaching out.";
-            const extractedReply = extractBotReply(data);
-            if (extractedReply) {
-                botReply = extractedReply;
-            } else if (typeof responseText === 'string' && responseText.trim()) {
-                const trimmedResponse = responseText.trim();
-                if (trimmedResponse && trimmedResponse !== '{}' && trimmedResponse !== '[]') {
-                    botReply = trimmedResponse;
-                }
-            } else if (data && typeof data === 'object') {
-                const serialized = JSON.stringify(data);
-                if (serialized && serialized !== '{}' && serialized !== '[]') {
-                    botReply = serialized;
+            let parsedResponse = null;
+            if (responseText) {
+                try {
+                    parsedResponse = JSON.parse(responseText);
+                } catch (parseError) {
+                    parsedResponse = null;
                 }
             }
+            const botReply = extractBotReply(parsedResponse) || (responseText.trim() ? responseText.trim() : "Thank you for reaching out.");
 
             if (!response.ok) {
                 if (botReply && botReply !== "Thank you for reaching out.") {
                     stepDiv.innerHTML = `<h2>${formatBotReply(botReply)}</h2>`;
+                    appendRsvpRecoveryActions(stepDiv, botReply);
                     scrollToBottom();
                     return;
                 }
@@ -2721,6 +3031,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             stepDiv.innerHTML = `<h2>${formatBotReply(botReply)}</h2>`;
+            appendRsvpRecoveryActions(stepDiv, botReply);
             scrollToBottom(); // Scroll to show bot response
 
 
@@ -2786,6 +3097,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function restart() {
+        setChatbotMinimized(false);
         currentStep = 0;
         isAskingForEmail = false;
         formData.sessionId = generateSessionId();
@@ -2950,6 +3262,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (questionFieldInput) questionFieldInput.value = step.field;
         if (questionTextInput) questionTextInput.value = step.question;
         if (questionPlaceholderInput) questionPlaceholderInput.value = step.placeholder;
+        if (questionTypeSelect) questionTypeSelect.value = step.type || 'text';
+        if (questionOptionsInput) questionOptionsInput.value = Array.isArray(step.options) ? step.options.join('\n') : '';
         if (questionFontFamilySelect) questionFontFamilySelect.value = questionnaireSettings.fontFamily;
         if (questionFontSizeInput) questionFontSizeInput.value = String(questionnaireSettings.fontSize);
         if (questionAnimStyleSelect) questionAnimStyleSelect.value = questionnaireSettings.animation;
@@ -2961,11 +3275,26 @@ document.addEventListener('DOMContentLoaded', () => {
         const field = (questionFieldInput?.value || '').trim();
         const question = (questionTextInput?.value || '').trim();
         const placeholder = (questionPlaceholderInput?.value || '').trim();
-        if (!field || !question || !placeholder) {
-            setQuestionsStatus('Field key, question text, and placeholder are required.', 'error');
+        const type = questionTypeSelect?.value === 'multiple_choice' ? 'multiple_choice' : 'text';
+        const options = String(questionOptionsInput?.value || '')
+            .split(/\r?\n/)
+            .map(option => option.trim())
+            .filter(Boolean);
+        if (!field || !question || (type === 'text' && !placeholder)) {
+            setQuestionsStatus('Field key, question text, and placeholder are required for text input questions.', 'error');
             return;
         }
-        steps[selectedQuestionIndex] = { field, question, placeholder };
+        if (type === 'multiple_choice' && options.length < 2) {
+            setQuestionsStatus('Add at least two choices for a multiple choice question.', 'error');
+            return;
+        }
+        steps[selectedQuestionIndex] = {
+            field,
+            question,
+            placeholder: type === 'multiple_choice' ? placeholder || 'Select an option' : placeholder,
+            type,
+            options
+        };
         questionnaireSettings.fontFamily = questionFontFamilySelect?.value || questionnaireSettings.fontFamily;
         questionnaireSettings.fontSize = Number.parseInt(questionFontSizeInput?.value || String(questionnaireSettings.fontSize), 10) || questionnaireSettings.fontSize;
         questionnaireSettings.animation = questionAnimStyleSelect?.value || questionnaireSettings.animation;
@@ -2981,7 +3310,9 @@ document.addEventListener('DOMContentLoaded', () => {
         steps.push({
             field: `field_${steps.length + 1}`,
             question: 'New question',
-            placeholder: 'Type here...'
+            placeholder: 'Type here...',
+            type: 'text',
+            options: []
         });
         selectedQuestionIndex = steps.length - 1;
         renderQuestionList();
@@ -3987,5 +4318,29 @@ document.addEventListener('DOMContentLoaded', () => {
             handleNext();
         }
     });
+
+    if (flowContainer) {
+        flowContainer.addEventListener('click', (event) => {
+            const actionButton = event.target.closest('.rsvp-recovery-actions .choice-button');
+            if (!actionButton) return;
+
+            const buttonGroup = actionButton.closest('.rsvp-recovery-actions');
+            if (!buttonGroup) return;
+
+            buttonGroup.querySelectorAll('.choice-button').forEach((button) => {
+                button.disabled = true;
+                button.classList.toggle('choice-button--selected', button === actionButton);
+            });
+
+            const action = actionButton.dataset.recoveryAction;
+            if (action === 'refresh') {
+                setTimeout(() => hardRefresh(), 80);
+                return;
+            }
+            if (action === 'minimize') {
+                minimizeChatbot();
+            }
+        });
+    }
 
 });
