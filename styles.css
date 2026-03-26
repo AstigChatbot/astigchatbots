@@ -140,6 +140,25 @@ body.embedded-app[data-builder-style="transparent"] .conversation-flow {
     background: transparent !important;
 }
 
+body.embedded-inline {
+    overflow: hidden;
+}
+
+body.embedded-inline .main-container {
+    display: flex;
+    width: 100%;
+    max-width: 600px;
+    height: 100vh;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+}
+
+body.embedded-inline .form-interface {
+    max-width: 600px;
+    border-radius: 24px;
+}
+
 .app-logo {
     position: fixed;
     top: 18px;
@@ -1805,6 +1824,34 @@ body.drawer-panel-open .floating-menu:not(.left-menu) {
 
     .split-name-fields__grid {
         grid-template-columns: 1fr;
+    }
+
+    body.embedded-inline .form-interface {
+        width: 100%;
+        max-width: 600px;
+        height: 100%;
+        border-radius: 24px;
+        border: 1px solid var(--builder-panel-border);
+        border-bottom: 1px solid var(--builder-panel-border);
+        padding: 40px;
+        background: var(--builder-panel-sheen), var(--builder-panel-background);
+        backdrop-filter: var(--builder-panel-backdrop);
+        -webkit-backdrop-filter: var(--builder-panel-backdrop);
+        box-shadow: var(--builder-panel-shadow);
+    }
+
+    body.embedded-inline .form-header {
+        margin-top: 0;
+    }
+
+    body.embedded-inline .split-name-fields__grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    body.embedded-inline .nav-btn,
+    body.embedded-inline #send-btn,
+    body.embedded-inline .settings-btn {
+        padding: 8px 20px;
     }
 
     #user-input {
