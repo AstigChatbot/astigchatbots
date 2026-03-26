@@ -12,6 +12,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const sendBtn = document.getElementById('send-btn');
     const inputArea = document.querySelector('.input-area');
     const inputWrapper = document.querySelector('.input-wrapper');
+    const introScreen = document.getElementById('intro-screen');
+    const introContinueBtn = document.getElementById('intro-continue-btn');
     const formInterface = document.querySelector('.form-interface');
     const restartBtn = document.getElementById('restart-btn');
     const downloadBtn = document.getElementById('download-btn');
@@ -187,6 +189,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const questionPlaceholderInput = document.getElementById('question-placeholder');
     const questionTypeSelect = document.getElementById('question-type');
     const questionOptionsInput = document.getElementById('question-options');
+    const questionOptionsLabel = document.getElementById('question-options-label');
     const questionFontFamilySelect = document.getElementById('question-font-family');
     const questionFontSizeInput = document.getElementById('question-font-size');
     const questionAnimStyleSelect = document.getElementById('question-anim-style');
@@ -234,6 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const DEFAULT_EMBED_RUNTIME_BASE = `https://cdn.jsdelivr.net/gh/AstigChatbot/astigchatbots@${CURRENT_EMBED_COMMIT}`;
     const DEFAULT_EMBED_APP_BASE = `https://cdn.jsdelivr.net/gh/AstigChatbot/astigchatbots@${CURRENT_EMBED_COMMIT}`;
     const RSVP_FAILURE_MESSAGE = "⚠️ Oops! We couldn't process your RSVP. Please make sure all your details are correct and try again.";
+    const GUEST_LIST_NOT_FOUND_MESSAGE = "❌ We couldn't find your name on the guest list. Please double-check your details. Would you like try again?";
     const LOGO_PRESETS = {
         brand: 'https://widjets.astigmedia.com/img/main-logo.png',
         assistant: 'https://widjets.astigmedia.com/img/Assistant-logo.png',
@@ -637,7 +641,49 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if (questionList) {
-        questionList.addEventListener('change', () => loadQuestionSelection(Number(questionList.value)));
+        questionList.addEventListener('click', (event) => {
+            const questionItem = event.target.closest('.question-list__item');
+            if (!questionItem) return;
+            loadQuestionSelection(Number(questionItem.dataset.index));
+        });
+        questionList.addEventListener('dragstart', (event) => {
+            const questionItem = event.target.closest('.question-list__item');
+            if (!questionItem) return;
+            draggedQuestionIndex = Number(questionItem.dataset.index);
+            questionItem.classList.add('is-dragging');
+            if (event.dataTransfer) {
+                event.dataTransfer.effectAllowed = 'move';
+                event.dataTransfer.setData('text/plain', String(draggedQuestionIndex));
+            }
+        });
+        questionList.addEventListener('dragend', () => {
+            draggedQuestionIndex = null;
+            questionList.querySelectorAll('.question-list__item').forEach((item) => {
+                item.classList.remove('is-dragging', 'is-drop-target');
+            });
+        });
+        questionList.addEventListener('dragover', (event) => {
+            event.preventDefault();
+            const questionItem = event.target.closest('.question-list__item');
+            questionList.querySelectorAll('.question-list__item').forEach((item) => {
+                item.classList.toggle('is-drop-target', item === questionItem && !item.classList.contains('is-dragging'));
+            });
+            if (event.dataTransfer) {
+                event.dataTransfer.dropEffect = 'move';
+            }
+        });
+        questionList.addEventListener('dragleave', (event) => {
+            const questionItem = event.target.closest('.question-list__item');
+            if (questionItem && !questionItem.contains(event.relatedTarget)) {
+                questionItem.classList.remove('is-drop-target');
+            }
+        });
+        questionList.addEventListener('drop', (event) => {
+            event.preventDefault();
+            const questionItem = event.target.closest('.question-list__item');
+            if (!questionItem) return;
+            moveQuestion(draggedQuestionIndex, Number(questionItem.dataset.index));
+        });
     }
 
     if (questionAddBtn) {
@@ -654,6 +700,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (questionsApplyBtn) {
         questionsApplyBtn.addEventListener('click', applyQuestionnaire);
+    }
+
+    if (questionTypeSelect) {
+        questionTypeSelect.addEventListener('change', () => syncQuestionTypeUi(questionTypeSelect.value));
     }
 
     if (avatarMenuBtn) {
@@ -758,6 +808,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Form State
     let currentStep = 0;
+    let hasStartedConversation = false;
     const formData = {
         sessionId: generateSessionId(),
         name: '',
@@ -810,6 +861,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let activeAvatarTab = 'assistant';
     let projectNameResolver = null;
     let openProjectResolver = null;
+    let draggedQuestionIndex = null;
     let avatarSettings = {
         assistant: getDefaultAvatarSettings('assistant'),
         user: getDefaultAvatarSettings('user')
@@ -929,7 +981,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const nextSteps = candidate.map((step, index) => {
-            const type = step?.type === 'multiple_choice' ? 'multiple_choice' : 'text';
+            const type = step?.type === 'multiple_choice'
+                ? 'multiple_choice'
+                : (step?.type === 'input_bars' ? 'input_bars' : 'text');
             const options = Array.isArray(step?.options)
                 ? step.options.map(option => String(option || '').trim()).filter(Boolean)
                 : [];
@@ -938,7 +992,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 question: String(step?.question || '').trim() || `Question ${index + 1}`,
                 placeholder: String(step?.placeholder || 'Type here...').trim() || 'Type here...',
                 type,
-                options: type === 'multiple_choice' ? options : []
+                options: type === 'text' ? [] : options
             };
         });
 
@@ -2477,13 +2531,16 @@ document.addEventListener('DOMContentLoaded', () => {
         updateEmbedCode();
 
         currentStep = 0;
+        hasStartedConversation = false;
         isAskingForEmail = false;
         formData.sessionId = generateSessionId();
         formData.name = '';
+        formData.firstName = '';
+        formData.lastName = '';
         formData.email = '';
         formData.inquiry = '';
         flowContainer.innerHTML = '';
-        renderStep();
+        showIntroScreen();
     }
 
     window.addEventListener('message', (event) => {
@@ -2508,7 +2565,8 @@ document.addEventListener('DOMContentLoaded', () => {
     hydrateHeaderSettings();
     hydrateVideoSettings();
     hydrateLogoSettings();
-    renderStep();
+    showIntroScreen();
+    syncQuestionTypeUi(questionTypeSelect?.value || 'text');
     updateEmbedDefaults();
     updateEmbedCode();
     hydrateGithubSettings();
@@ -2539,7 +2597,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function setPrimaryInputMode(mode) {
-        const showInlineNameForm = mode === 'split-name';
+        const showInlineNameForm = mode === 'split-name' || mode === 'input-bars';
         const showMultipleChoice = mode === 'multiple-choice';
         if (inputArea) {
             inputArea.hidden = showMultipleChoice;
@@ -2595,6 +2653,52 @@ document.addEventListener('DOMContentLoaded', () => {
         firstNameInput?.focus();
     }
 
+    function getInputBarsPlaceholders(step = steps[currentStep]) {
+        return Array.isArray(step?.options)
+            ? step.options.map(option => String(option || '').trim()).filter(Boolean)
+            : [];
+    }
+
+    function isInputBarsStep(step = steps[currentStep]) {
+        return step?.type === 'input_bars' && getInputBarsPlaceholders(step).length > 0;
+    }
+
+    function renderInputBarsFields(stepDiv, stepData) {
+        const placeholders = getInputBarsPlaceholders(stepData);
+        const fieldGroup = document.createElement('div');
+        fieldGroup.className = 'split-name-fields';
+        fieldGroup.innerHTML = `
+            <div class="split-name-fields__grid">
+                ${placeholders.map((placeholder, index) => `
+                    <label class="split-name-fields__item${placeholders.length % 2 === 1 && index === placeholders.length - 1 ? ' split-name-fields__item--full' : ''}">
+                        <span>${escapeHtml(placeholder)}</span>
+                        <input
+                            type="text"
+                            class="split-name-input"
+                            data-input-bar-index="${index}"
+                            placeholder="${escapeHtml(placeholder)}"
+                            autocomplete="off">
+                    </label>
+                `).join('')}
+            </div>
+        `;
+        stepDiv.appendChild(fieldGroup);
+
+        fieldGroup.querySelectorAll('.split-name-input').forEach(input => {
+            input.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    handleNext();
+                }
+            });
+            input.addEventListener('input', () => {
+                input.classList.remove('split-name-input--error');
+            });
+        });
+
+        fieldGroup.querySelector('.split-name-input')?.focus();
+    }
+
     function readSplitNameStepValue() {
         const activeStep = flowContainer.querySelector('.message-wrapper:last-child .current-step');
         const firstNameInput = activeStep?.querySelector('[data-name-part="first"]');
@@ -2614,6 +2718,47 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         return { firstName, lastName, fullName };
+    }
+
+    function readInputBarsStepValue() {
+        const activeStep = flowContainer.querySelector('.message-wrapper:last-child .current-step');
+        const placeholders = getInputBarsPlaceholders();
+        const inputs = Array.from(activeStep?.querySelectorAll('[data-input-bar-index]') || []);
+        const values = [];
+        let hasError = false;
+
+        inputs.forEach((input, index) => {
+            const value = input.value.trim();
+            input.classList.toggle('split-name-input--error', !value);
+            if (!value) {
+                hasError = true;
+            }
+            values.push({
+                placeholder: placeholders[index] || `Field ${index + 1}`,
+                value
+            });
+        });
+
+        if (hasError || values.length === 0) {
+            return null;
+        }
+
+        return {
+            fields: values,
+            combined: values.map(item => `${item.placeholder}: ${item.value}`).join(' | ')
+        };
+    }
+
+    function extractFirstNameFromFields(fields = []) {
+        const firstNameField = fields.find((item) => /first\s*name/i.test(String(item?.placeholder || '')));
+        if (firstNameField?.value) {
+            return String(firstNameField.value).trim();
+        }
+        const nameField = fields.find((item) => /^name$/i.test(String(item?.placeholder || '').trim()));
+        if (nameField?.value) {
+            return String(nameField.value).trim().split(/\s+/)[0] || '';
+        }
+        return '';
     }
 
     function isMultipleChoiceStep(step = steps[currentStep]) {
@@ -2643,7 +2788,7 @@ document.addEventListener('DOMContentLoaded', () => {
         stepDiv.appendChild(buttonGroup);
     }
 
-    function processStepAnswer(text, splitNameValues = null) {
+    function processStepAnswer(text, splitNameValues = null, inputBarsValues = null) {
         if (!text) return;
 
         addToHistory(text);
@@ -2662,11 +2807,29 @@ document.addEventListener('DOMContentLoaded', () => {
         if (currentStep < steps.length) {
             const currentField = steps[currentStep].field;
             if (splitNameValues) {
-                formData[currentField] = splitNameValues.firstName;
+                formData[currentField] = splitNameValues.fullName;
+                formData.name = splitNameValues.fullName;
                 formData.firstName = splitNameValues.firstName;
                 formData.lastName = splitNameValues.lastName;
+            } else if (inputBarsValues) {
+                formData[currentField] = inputBarsValues.combined;
+                formData[`${currentField}Fields`] = inputBarsValues.fields;
+                const detectedFirstName = extractFirstNameFromFields(inputBarsValues.fields);
+                if (detectedFirstName) {
+                    formData.firstName = detectedFirstName;
+                }
+                const detectedNameField = inputBarsValues.fields.find((item) => /^name$/i.test(String(item?.placeholder || '').trim()));
+                if (detectedNameField?.value) {
+                    formData.name = String(detectedNameField.value).trim();
+                }
             } else {
                 formData[currentField] = text;
+                if (/^name$/i.test(currentField)) {
+                    formData.name = text;
+                    formData.firstName = text.trim().split(/\s+/)[0] || '';
+                } else if (/^first_?name$/i.test(currentField)) {
+                    formData.firstName = text;
+                }
             }
 
             currentStep++;
@@ -2680,6 +2843,43 @@ document.addEventListener('DOMContentLoaded', () => {
         userInput.value = '';
         scrollToBottom();
         submitForm();
+    }
+
+    function toggleConversationUi(showConversation) {
+        if (introScreen) {
+            introScreen.hidden = showConversation;
+        }
+        if (flowContainer) {
+            flowContainer.hidden = !showConversation;
+        }
+        if (inputArea) {
+            inputArea.hidden = !showConversation;
+            inputArea.style.display = showConversation ? '' : 'none';
+            inputArea.setAttribute('aria-hidden', showConversation ? 'false' : 'true');
+        }
+        document.body.classList.toggle('conversation-started', showConversation);
+    }
+
+    function showIntroScreen() {
+        hasStartedConversation = false;
+        toggleConversationUi(false);
+        setPrimaryInputMode('default');
+        if (introContinueBtn) {
+            setTimeout(() => introContinueBtn.focus(), 30);
+        }
+    }
+
+    function startConversation() {
+        if (hasStartedConversation) return;
+        hasStartedConversation = true;
+        toggleConversationUi(true);
+        flowContainer.innerHTML = '';
+        currentStep = 0;
+        isAskingForEmail = false;
+        userInput.disabled = false;
+        userInput.value = '';
+        userInput.placeholder = "Type here...";
+        renderStep();
     }
 
     function renderStep() {
@@ -2711,6 +2911,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderSplitNameFields(stepDiv);
                 userInput.value = '';
                 userInput.disabled = true;
+            } else if (isInputBarsStep(stepData)) {
+                setPrimaryInputMode('input-bars');
+                renderInputBarsFields(stepDiv, stepData);
+                userInput.value = '';
+                userInput.disabled = true;
             } else if (isMultipleChoiceStep(stepData)) {
                 setPrimaryInputMode('multiple-choice');
                 renderMultipleChoiceButtons(stepDiv, stepData);
@@ -2733,13 +2938,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function buildQuestionText(stepData) {
         let qText = stepData.question;
-        if (formData.firstName) {
-            qText = qText.replace(/\{firstName\}/g, formData.firstName);
-            qText = qText.replace(/\{Firstname\}/g, formData.firstName);
-        }
-        if (formData.name) {
-            qText = qText.replace(/\{name\}/g, formData.name);
-        }
+        const fullName = String(formData.name || '').trim();
+        const firstName = String(formData.firstName || '').trim() || (fullName ? fullName.split(/\s+/)[0] : '');
+
+        // Accept a few common token variants, including accidental `)` closers.
+        qText = qText.replace(/\{firstName[\}\)]/gi, firstName);
+        qText = qText.replace(/\{name[\}\)]/gi, fullName);
+
         const emoji = (questionnaireSettings.emoji || '').trim();
         return emoji ? `<span class="question-emoji">${emoji}</span> ${qText}` : qText;
     }
@@ -2778,7 +2983,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function shouldOfferRsvpRecovery(botReply) {
-        return String(botReply || '').trim() === RSVP_FAILURE_MESSAGE;
+        const normalizedReply = String(botReply || '').trim();
+        return normalizedReply === RSVP_FAILURE_MESSAGE || normalizedReply === GUEST_LIST_NOT_FOUND_MESSAGE;
     }
 
     function setChatbotMinimized(minimized) {
@@ -2817,13 +3023,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const yesButton = document.createElement('button');
         yesButton.type = 'button';
         yesButton.className = 'choice-button';
-        yesButton.textContent = 'Yes';
+        yesButton.textContent = 'YES';
         yesButton.dataset.recoveryAction = 'refresh';
 
         const noButton = document.createElement('button');
         noButton.type = 'button';
         noButton.className = 'choice-button';
-        noButton.textContent = 'No';
+        noButton.textContent = 'NO';
         noButton.dataset.recoveryAction = 'minimize';
 
         buttonGroup.appendChild(yesButton);
@@ -2925,15 +3131,20 @@ document.addEventListener('DOMContentLoaded', () => {
     async function handleNext() {
         let text = userInput.value.trim();
         let splitNameValues = null;
+        let inputBarsValues = null;
 
         if (currentStep < steps.length && isSplitNameStep()) {
             splitNameValues = readSplitNameStepValue();
             if (!splitNameValues) return;
             text = splitNameValues.fullName;
+        } else if (currentStep < steps.length && isInputBarsStep()) {
+            inputBarsValues = readInputBarsStepValue();
+            if (!inputBarsValues) return;
+            text = inputBarsValues.combined;
         }
 
         if (!text) return;
-        processStepAnswer(text, splitNameValues);
+        processStepAnswer(text, splitNameValues, inputBarsValues);
     }
 
     function archiveCurrentStep() {
@@ -2978,6 +3189,93 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function pruneEmptyPayloadValues(value) {
+        if (Array.isArray(value)) {
+            const cleanedItems = value
+                .map(item => pruneEmptyPayloadValues(item))
+                .filter(item => item !== undefined);
+            return cleanedItems.length > 0 ? cleanedItems : undefined;
+        }
+
+        if (value && typeof value === 'object') {
+            const cleanedEntries = Object.entries(value).reduce((accumulator, [key, entryValue]) => {
+                const cleanedValue = pruneEmptyPayloadValues(entryValue);
+                if (cleanedValue !== undefined) {
+                    accumulator[key] = cleanedValue;
+                }
+                return accumulator;
+            }, {});
+            return Object.keys(cleanedEntries).length > 0 ? cleanedEntries : undefined;
+        }
+
+        if (typeof value === 'string') {
+            const trimmed = value.trim();
+            return trimmed ? trimmed : undefined;
+        }
+
+        return value ?? undefined;
+    }
+
+    function buildWebhookFieldMap(metadata = {}) {
+        const fieldMap = {};
+
+        Object.entries(metadata).forEach(([key, value]) => {
+            if (Array.isArray(value) && /Fields$/i.test(key)) {
+                value.forEach((entry) => {
+                    const placeholder = String(entry?.placeholder || '').trim();
+                    const fieldValue = pruneEmptyPayloadValues(entry?.value);
+                    if (placeholder && fieldValue !== undefined) {
+                        fieldMap[placeholder] = fieldValue;
+                    }
+                });
+                return;
+            }
+
+            if (value && typeof value === 'object') {
+                return;
+            }
+
+            const cleanedValue = pruneEmptyPayloadValues(value);
+            if (cleanedValue !== undefined) {
+                fieldMap[key] = cleanedValue;
+            }
+        });
+
+        const fullName = String(fieldMap.name || '').trim();
+        if (!fieldMap['First Name']) {
+            const firstName = String(fieldMap.firstName || '').trim() || (fullName ? fullName.split(/\s+/)[0] : '');
+            if (firstName) {
+                fieldMap['First Name'] = firstName;
+            }
+        }
+        if (!fieldMap.firstName && fieldMap['First Name']) {
+            fieldMap.firstName = fieldMap['First Name'];
+        }
+        if (!fieldMap['Last Name']) {
+            const lastName = String(fieldMap.lastName || '').trim();
+            if (lastName) {
+                fieldMap['Last Name'] = lastName;
+            }
+        }
+        if (!fieldMap.lastName && fieldMap['Last Name']) {
+            fieldMap.lastName = fieldMap['Last Name'];
+        }
+        if (!fieldMap.Email && fieldMap.email) {
+            fieldMap.Email = fieldMap.email;
+        }
+        if (!fieldMap.email && fieldMap.Email) {
+            fieldMap.email = fieldMap.Email;
+        }
+        if (!fieldMap.RSVP && metadata.RSVP) {
+            fieldMap.RSVP = metadata.RSVP;
+        }
+        if (!fieldMap.rsvp && fieldMap.RSVP) {
+            fieldMap.rsvp = fieldMap.RSVP;
+        }
+
+        return pruneEmptyPayloadValues(fieldMap) || {};
+    }
+
     async function submitForm() {
         // Show Loading
         const stepDiv = createBotMessage();
@@ -2993,14 +3291,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const metadata = {};
             Object.entries(formData).forEach(([key, value]) => {
                 if (key === 'sessionId') return;
-                metadata[key] = value || '';
+                const cleanedValue = pruneEmptyPayloadValues(value);
+                if (cleanedValue !== undefined) {
+                    metadata[key] = cleanedValue;
+                }
             });
+
+            const flattenedFields = buildWebhookFieldMap(metadata);
 
             const payload = {
                 action: 'sendMessage',
                 sessionId: formData.sessionId,
                 chatInput: formData.inquiry || formData.email || formData.name || '',
-                metadata
+                metadata: pruneEmptyPayloadValues(metadata) || {},
+                ...flattenedFields
             };
 
             const response = await fetch(currentWebhookUrl, {
@@ -3098,9 +3402,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 400);
     }
 
-    function restart() {
+    function restart(showIntro = true) {
         setChatbotMinimized(false);
         currentStep = 0;
+        hasStartedConversation = false;
         isAskingForEmail = false;
         formData.sessionId = generateSessionId();
         formData.name = '';
@@ -3112,7 +3417,11 @@ document.addEventListener('DOMContentLoaded', () => {
         setPrimaryInputMode('default');
         userInput.disabled = false;
         userInput.placeholder = "Type here...";
-        renderStep();
+        if (showIntro) {
+            showIntroScreen();
+            return;
+        }
+        startConversation();
     }
 
     function hardRefresh() {
@@ -3244,14 +3553,30 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!questionList) return;
         questionList.innerHTML = '';
         steps.forEach((step, index) => {
-            const option = document.createElement('option');
-            option.value = String(index);
-            option.textContent = `${index + 1}. ${step.field}`;
-            questionList.appendChild(option);
+            const item = document.createElement('div');
+            item.className = 'question-list__item';
+            item.dataset.index = String(index);
+            item.draggable = true;
+            item.setAttribute('role', 'option');
+            item.setAttribute('aria-selected', index === selectedQuestionIndex ? 'true' : 'false');
+            if (index === selectedQuestionIndex) {
+                item.classList.add('is-selected');
+            }
+            item.innerHTML = `
+                <span class="question-list__handle" aria-hidden="true">::</span>
+                <span class="question-list__content">
+                    <span class="question-list__title">${index + 1}. ${escapeHtml(step.field)}</span>
+                    <span class="question-list__meta">${escapeHtml(
+                        step.type === 'multiple_choice'
+                            ? 'Multiple choice'
+                            : (step.type === 'input_bars' ? 'Input bars' : 'Text input')
+                    )}</span>
+                </span>
+            `;
+            questionList.appendChild(item);
         });
         if (steps.length > 0) {
             const nextIndex = Math.min(Math.max(selectedQuestionIndex, 0), steps.length - 1);
-            questionList.value = String(nextIndex);
             selectedQuestionIndex = nextIndex;
         }
     }
@@ -3260,16 +3585,69 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!steps.length) return;
         selectedQuestionIndex = Math.min(Math.max(index, 0), steps.length - 1);
         const step = steps[selectedQuestionIndex];
-        if (questionList) questionList.value = String(selectedQuestionIndex);
+        if (questionList) {
+            questionList.querySelectorAll('.question-list__item').forEach((item) => {
+                const isSelected = Number(item.dataset.index) === selectedQuestionIndex;
+                item.classList.toggle('is-selected', isSelected);
+                item.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+            });
+        }
         if (questionFieldInput) questionFieldInput.value = step.field;
         if (questionTextInput) questionTextInput.value = step.question;
         if (questionPlaceholderInput) questionPlaceholderInput.value = step.placeholder;
         if (questionTypeSelect) questionTypeSelect.value = step.type || 'text';
         if (questionOptionsInput) questionOptionsInput.value = Array.isArray(step.options) ? step.options.join('\n') : '';
+        syncQuestionTypeUi(step.type || 'text');
         if (questionFontFamilySelect) questionFontFamilySelect.value = questionnaireSettings.fontFamily;
         if (questionFontSizeInput) questionFontSizeInput.value = String(questionnaireSettings.fontSize);
         if (questionAnimStyleSelect) questionAnimStyleSelect.value = questionnaireSettings.animation;
         if (questionEmojiInput) questionEmojiInput.value = questionnaireSettings.emoji;
+    }
+
+    function moveQuestion(fromIndex, toIndex) {
+        if (!Number.isInteger(fromIndex) || !Number.isInteger(toIndex)) return;
+        if (fromIndex < 0 || toIndex < 0 || fromIndex >= steps.length || toIndex >= steps.length) return;
+        if (fromIndex === toIndex) {
+            renderQuestionList();
+            loadQuestionSelection(selectedQuestionIndex);
+            return;
+        }
+
+        const [movedStep] = steps.splice(fromIndex, 1);
+        steps.splice(toIndex, 0, movedStep);
+
+        if (selectedQuestionIndex === fromIndex) {
+            selectedQuestionIndex = toIndex;
+        } else if (fromIndex < selectedQuestionIndex && toIndex >= selectedQuestionIndex) {
+            selectedQuestionIndex -= 1;
+        } else if (fromIndex > selectedQuestionIndex && toIndex <= selectedQuestionIndex) {
+            selectedQuestionIndex += 1;
+        }
+
+        persistQuestionnaire();
+        renderQuestionList();
+        loadQuestionSelection(selectedQuestionIndex);
+        setQuestionsStatus('Question order updated.', 'success');
+    }
+
+    function syncQuestionTypeUi(selectedType = questionTypeSelect?.value || 'text') {
+        const isMultipleChoice = selectedType === 'multiple_choice';
+        const isInputBars = selectedType === 'input_bars';
+
+        if (questionOptionsLabel) {
+            questionOptionsLabel.textContent = isInputBars ? 'Input bar placeholders' : 'Choices';
+        }
+        if (questionOptionsInput) {
+            questionOptionsInput.placeholder = isInputBars
+                ? 'First name\nLast name\nEmail address'
+                : 'Option 1\nOption 2\nOption 3';
+        }
+        if (questionPlaceholderInput) {
+            questionPlaceholderInput.disabled = isMultipleChoice || isInputBars;
+            questionPlaceholderInput.placeholder = isInputBars
+                ? 'Handled by the input bar placeholders below'
+                : 'Type here...';
+        }
     }
 
     function saveSelectedQuestion() {
@@ -3277,7 +3655,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const field = (questionFieldInput?.value || '').trim();
         const question = (questionTextInput?.value || '').trim();
         const placeholder = (questionPlaceholderInput?.value || '').trim();
-        const type = questionTypeSelect?.value === 'multiple_choice' ? 'multiple_choice' : 'text';
+        const type = questionTypeSelect?.value === 'multiple_choice'
+            ? 'multiple_choice'
+            : (questionTypeSelect?.value === 'input_bars' ? 'input_bars' : 'text');
         const options = String(questionOptionsInput?.value || '')
             .split(/\r?\n/)
             .map(option => option.trim())
@@ -3290,10 +3670,16 @@ document.addEventListener('DOMContentLoaded', () => {
             setQuestionsStatus('Add at least two choices for a multiple choice question.', 'error');
             return;
         }
+        if (type === 'input_bars' && options.length < 1) {
+            setQuestionsStatus('Add at least one placeholder for the input bars question.', 'error');
+            return;
+        }
         steps[selectedQuestionIndex] = {
             field,
             question,
-            placeholder: type === 'multiple_choice' ? placeholder || 'Select an option' : placeholder,
+            placeholder: type === 'text'
+                ? placeholder
+                : (type === 'multiple_choice' ? placeholder || 'Select an option' : ''),
             type,
             options
         };
@@ -4302,6 +4688,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Event Listeners
     sendBtn.addEventListener('click', handleNext);
     restartBtn.addEventListener('click', restart);
+    introContinueBtn?.addEventListener('click', startConversation);
 
     // Toggle Event Listener
     if (webhookToggle) {
@@ -4323,6 +4710,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    introContinueBtn?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            startConversation();
+        }
+    });
+
     if (flowContainer) {
         flowContainer.addEventListener('click', (event) => {
             const actionButton = event.target.closest('.rsvp-recovery-actions .choice-button');
@@ -4338,7 +4732,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const action = actionButton.dataset.recoveryAction;
             if (action === 'refresh') {
-                setTimeout(() => hardRefresh(), 80);
+                setTimeout(() => restart(false), 80);
                 return;
             }
             if (action === 'minimize') {
