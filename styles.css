@@ -159,6 +159,15 @@ body.embedded-inline .form-interface {
     border-radius: 24px;
 }
 
+body.embedded-inline .split-name-fields {
+    width: min(100%, 540px);
+}
+
+body.embedded-inline .split-name-fields__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 14px;
+}
+
 .app-logo {
     position: fixed;
     top: 18px;
@@ -1842,10 +1851,6 @@ body.drawer-panel-open .floating-menu:not(.left-menu) {
 
     body.embedded-inline .form-header {
         margin-top: 0;
-    }
-
-    body.embedded-inline .split-name-fields__grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     body.embedded-inline .nav-btn,
