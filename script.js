@@ -190,7 +190,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const embedCssUrlInput = document.getElementById('embed-css-url');
     const embedContainerIdInput = document.getElementById('embed-container-id');
     const embedCodeBlock = document.getElementById('embed-code-block');
+    const embedInlineCodeBlock = document.getElementById('embed-inline-code-block');
     const copyEmbedBtn = document.getElementById('copy-embed');
+    const copyInlineEmbedBtn = document.getElementById('copy-inline-embed');
     const downloadEmbedJsBtn = document.getElementById('download-embed-js');
     const downloadEmbedCssBtn = document.getElementById('download-embed-css');
 
@@ -454,7 +456,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if (copyEmbedBtn) {
-        copyEmbedBtn.addEventListener('click', copyEmbedCode);
+        copyEmbedBtn.addEventListener('click', () => copyEmbedCode('launcher'));
+    }
+
+    if (copyInlineEmbedBtn) {
+        copyInlineEmbedBtn.addEventListener('click', () => copyEmbedCode('inline'));
     }
 
     if (downloadEmbedJsBtn) {
@@ -2254,17 +2260,17 @@ document.addEventListener('DOMContentLoaded', () => {
     function setPrimaryInputMode(mode) {
         const showInlineNameForm = mode === 'split-name';
         if (inputArea) {
-            inputArea.hidden = showInlineNameForm;
-            inputArea.style.display = showInlineNameForm ? 'none' : '';
-            inputArea.setAttribute('aria-hidden', showInlineNameForm ? 'true' : 'false');
+            inputArea.hidden = false;
+            inputArea.style.display = '';
+            inputArea.setAttribute('aria-hidden', 'false');
         }
         if (inputWrapper) {
             inputWrapper.hidden = showInlineNameForm;
             inputWrapper.style.display = showInlineNameForm ? 'none' : '';
         }
         if (sendBtn) {
-            sendBtn.hidden = showInlineNameForm;
-            sendBtn.style.display = showInlineNameForm ? 'none' : '';
+            sendBtn.hidden = false;
+            sendBtn.style.display = '';
         }
         if (inputArea) inputArea.classList.toggle('input-area--inline-mode', showInlineNameForm);
         if (sendBtn) sendBtn.textContent = showInlineNameForm ? 'Continue' : 'Submit';
@@ -3131,7 +3137,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function buildEmbedCode() {
+    function getEmbedSnippetData() {
         const snapshot = getProjectSnapshot();
         const runtimeBase = ((embedJsUrlInput?.value || '').trim().replace(/\/auto-embed\.js$/i, '')) || getActiveEmbedRuntimeBase();
         const appBase = ((embedCssUrlInput?.value || '').trim().replace(/\/(?:index|embed)\.html$/i, '')) || getActiveEmbedAppBase();
@@ -3149,6 +3155,35 @@ document.addEventListener('DOMContentLoaded', () => {
         const subtext = snapshot?.widget?.subtext || 'We typically reply in minutes';
         const iconSize = snapshot?.widget?.iconSize || '26';
         const encodedProject = encodeEmbedSnapshot(snapshot);
+        return {
+            jsUrl,
+            appUrl,
+            webhook,
+            iconUrl,
+            shape,
+            anim,
+            is3d,
+            label,
+            subtext,
+            iconSize,
+            encodedProject
+        };
+    }
+
+    function buildLauncherEmbedCode() {
+        const {
+            jsUrl,
+            appUrl,
+            webhook,
+            iconUrl,
+            shape,
+            anim,
+            is3d,
+            label,
+            subtext,
+            iconSize,
+            encodedProject
+        } = getEmbedSnippetData();
         const attrs = [
             `src="${jsUrl}"`,
             `data-webhook="${webhook}"`,
@@ -3172,9 +3207,80 @@ document.addEventListener('DOMContentLoaded', () => {
         return `<script ${attrs.join(' ')}></script>`;
     }
 
+    function buildInlineEmbedCode() {
+        const {
+            appUrl,
+            webhook,
+            encodedProject
+        } = getEmbedSnippetData();
+        const containerId = (embedContainerIdInput?.value || 'cherry-embed').trim() || 'cherry-embed';
+        const safeContainerId = containerId.replace(/"/g, '&quot;');
+        const appUrlLiteral = JSON.stringify(appUrl);
+        const webhookLiteral = JSON.stringify(webhook);
+        const projectLiteral = JSON.stringify(encodedProject);
+        const containerLiteral = JSON.stringify(containerId);
+
+        return `<div id="${safeContainerId}" style="width:min(100%, 600px);height:90vh;max-height:900px;margin:0 auto;"></div>
+<script>
+(() => {
+  const targetId = ${containerLiteral};
+  const container = document.getElementById(targetId);
+  if (!container) return;
+
+  const appUrl = new URL(${appUrlLiteral}, window.location.href);
+  appUrl.searchParams.set('embed', '1');
+  appUrl.searchParams.set('inline', '1');
+
+  const project = ${projectLiteral};
+  const webhook = ${webhookLiteral};
+  const iframe = document.createElement('iframe');
+  iframe.allow = 'clipboard-read; clipboard-write; microphone; autoplay';
+  iframe.loading = 'lazy';
+  iframe.style.cssText = 'width:100%;height:100%;display:block;border:0;border-radius:24px;box-shadow:none;background:transparent;';
+
+  const postConfig = () => {
+    try {
+      const normalized = project.replace(/-/g, '+').replace(/_/g, '/');
+      const padded = normalized + '='.repeat((4 - (normalized.length % 4 || 4)) % 4);
+      const snapshot = JSON.parse(decodeURIComponent(escape(atob(padded))));
+      if (webhook) {
+        snapshot.webhook = {
+          ...(snapshot.webhook || {}),
+          prod: webhook,
+          active: 'prod'
+        };
+      }
+      iframe.contentWindow.postMessage({ type: 'CHERRY_EMBED_CONFIG', snapshot }, '*');
+      setTimeout(() => iframe.contentWindow.postMessage({ type: 'CHERRY_EMBED_CONFIG', snapshot }, '*'), 150);
+    } catch (_) {}
+  };
+
+  fetch(appUrl.toString(), { cache: 'no-store' })
+    .then((response) => {
+      if (!response.ok) throw new Error('Failed to load app HTML');
+      return response.text();
+    })
+    .then((html) => {
+      const baseHref = appUrl.toString().replace(/[^/]*$/, '');
+      iframe.srcdoc = html.replace(/<head([^>]*)>/i, '<head$1><base href="' + baseHref + '">');
+      iframe.addEventListener('load', postConfig, { once: true });
+      container.innerHTML = '';
+      container.appendChild(iframe);
+    })
+    .catch((error) => {
+      console.error('Cherry inline embed failed.', error);
+    });
+})();
+</script>`;
+    }
+
     function updateEmbedCode() {
-        if (!embedCodeBlock) return;
-        embedCodeBlock.textContent = buildEmbedCode();
+        if (embedCodeBlock) {
+            embedCodeBlock.textContent = buildLauncherEmbedCode();
+        }
+        if (embedInlineCodeBlock) {
+            embedInlineCodeBlock.textContent = buildInlineEmbedCode();
+        }
     }
 
     // -----------------------------
@@ -3569,8 +3675,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function copyEmbedCode() {
-        const code = buildEmbedCode();
+    async function copyEmbedCode(mode = 'launcher') {
+        const isInline = mode === 'inline';
+        const code = isInline ? buildInlineEmbedCode() : buildLauncherEmbedCode();
+        const button = isInline ? copyInlineEmbedBtn : copyEmbedBtn;
         try {
             if (navigator.clipboard?.writeText) {
                 await navigator.clipboard.writeText(code);
@@ -3595,8 +3703,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
         }
-        copyEmbedBtn.textContent = 'Copied';
-        setTimeout(() => copyEmbedBtn.textContent = 'Copy', 1200);
+        if (button) {
+            const defaultLabel = isInline ? 'Copy INLINE' : 'Copy';
+            button.textContent = 'Copied';
+            setTimeout(() => button.textContent = defaultLabel, 1200);
+        }
     }
 
     function downloadEmbedJs() {
