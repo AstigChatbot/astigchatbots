@@ -28,8 +28,18 @@
   const targetId = (script.dataset.target || '').trim();
   const mode = (script.dataset.mode || '').trim().toLowerCase();
   const isInline = mode === 'inline';
-  const mountTarget = targetId ? document.getElementById(targetId) : document.body;
-  if (!mountTarget) return;
+  let mountTarget = targetId ? document.getElementById(targetId) : null;
+  if (!mountTarget && isInline) {
+    mountTarget = document.createElement('div');
+    if (targetId) mountTarget.id = targetId;
+    mountTarget.style.width = 'min(100%, 600px)';
+    mountTarget.style.minHeight = '720px';
+    mountTarget.style.margin = '0 auto';
+    script.insertAdjacentElement('beforebegin', mountTarget);
+  }
+  if (!mountTarget) {
+    mountTarget = document.body;
+  }
 
   const widget = project?.widget || {};
   const isTransparentTheme = project?.theme?.style === 'transparent';
