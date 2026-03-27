@@ -280,6 +280,20 @@ body.drawer-panel-open .app-logo {
     outline-offset: 3px;
 }
 
+.intro-screen.intro-anim-glow .intro-screen__title,
+.intro-screen.intro-anim-glow .intro-screen__message,
+.intro-screen.intro-anim-glow .intro-screen__button {
+    text-shadow: 0 0 14px rgba(165, 180, 252, 0.24);
+}
+
+.intro-screen.intro-anim-glow .intro-screen__button {
+    box-shadow: 0 14px 30px rgba(139, 92, 246, 0.28), 0 0 24px rgba(165, 180, 252, 0.22);
+}
+
+.intro-screen.intro-anim-fade .intro-screen__card {
+    animation: slideUp 0.45s ease forwards;
+}
+
 @media (max-width: 640px) {
     .intro-screen {
         min-height: 360px;
@@ -500,26 +514,23 @@ body.drawer-panel-open .floating-menu:not(.left-menu) {
 
 .avatar-panel {
     position: fixed;
-    right: 20px;
-    bottom: 112px;
-    width: min(420px, calc(100vw - 24px));
-    max-height: min(70vh, 680px);
-    background: linear-gradient(180deg, rgba(15, 23, 42, 0.9), rgba(17, 24, 39, 0.94));
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 24px;
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
-    box-shadow: 0 24px 54px rgba(0, 0, 0, 0.42);
-    padding: 18px;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 360px;
+    max-width: 90vw;
+    background: rgba(15, 23, 42, 0.95);
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 10px 50px rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    opacity: 0;
-    pointer-events: none;
-    transform: translateY(24px) scale(0.98);
-    transform-origin: bottom right;
-    transition: opacity 0.22s ease, transform 0.22s ease;
-    z-index: 71;
+    padding: 22px 20px 26px;
+    gap: 18px;
+    transform: translateX(-105%);
+    transition: transform 0.28s ease;
+    z-index: 50;
 }
 
 .theme-panel {
@@ -646,9 +657,7 @@ body.drawer-panel-open .floating-menu:not(.left-menu) {
 }
 
 .avatar-panel.open {
-    opacity: 1;
-    pointer-events: auto;
-    transform: translateY(0) scale(1);
+    transform: translateX(0);
 }
 
 .avatar-panel__header,
@@ -1463,8 +1472,7 @@ body.drawer-panel-open .floating-menu:not(.left-menu) {
     }
 
     .avatar-panel {
-        right: 16px;
-        bottom: 104px;
+        width: 320px;
     }
 
 }
@@ -2610,12 +2618,8 @@ input:checked+.slider:before {
     }
 
     .avatar-panel {
-        right: 12px;
-        left: 12px;
-        width: auto;
-        bottom: 96px;
-        max-height: min(68vh, 620px);
-        border-radius: 20px;
+        width: min(320px, 90vw);
+        max-width: 90vw;
     }
 
     .avatar-preview-card {
