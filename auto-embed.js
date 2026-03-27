@@ -35,6 +35,7 @@
   const isTransparentTheme = project?.theme?.style === 'transparent';
   const label = (script.dataset.label || widget.label || 'Chat with Cherry').trim();
   const subtext = (script.dataset.subtext || widget.subtext || 'We typically reply in minutes').trim();
+  const subtextDisplay = (script.dataset.subtextDisplay || widget.subtextDisplay || 'hover').trim().toLowerCase();
   const iconUrl = (script.dataset.iconUrl || widget.icon || '').trim();
   const shape = (script.dataset.iconShape || widget.shape || 'circle').trim();
   const anim = (script.dataset.iconAnim || widget.animation || 'none').trim();
@@ -78,6 +79,7 @@
   panel.appendChild(frame);
 
   const launcher = isInline ? null : document.createElement('button');
+  const hint = isInline ? null : document.createElement('div');
   if (launcher) {
     launcher.type = 'button';
     launcher.setAttribute('aria-label', label);
@@ -98,6 +100,34 @@
     launcher.style.right = targetId ? '0' : '24px';
     launcher.style.bottom = targetId ? '0' : '24px';
     launcher.style.zIndex = '2147483001';
+  }
+
+  if (hint) {
+    hint.textContent = subtext;
+    hint.style.position = targetId ? 'absolute' : 'fixed';
+    hint.style.right = targetId ? '72px' : '96px';
+    hint.style.bottom = targetId ? '8px' : '26px';
+    hint.style.maxWidth = '220px';
+    hint.style.padding = '10px 14px';
+    hint.style.borderRadius = '14px';
+    hint.style.border = '1px solid rgba(255, 255, 255, 0.14)';
+    hint.style.background = 'rgba(15, 23, 42, 0.96)';
+    hint.style.color = '#f8fafc';
+    hint.style.fontSize = '13px';
+    hint.style.lineHeight = '1.35';
+    hint.style.boxShadow = '0 16px 32px rgba(0, 0, 0, 0.35)';
+    hint.style.pointerEvents = 'none';
+    hint.style.opacity = '0';
+    hint.style.transform = 'translateY(8px)';
+    hint.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+    hint.style.zIndex = '2147483000';
+    if (!subtext || subtextDisplay === 'hidden') {
+      hint.style.display = 'none';
+    }
+    if (subtext && subtextDisplay === 'always') {
+      hint.style.opacity = '1';
+      hint.style.transform = 'translateY(0)';
+    }
   }
 
   const icon = document.createElement('span');
@@ -130,6 +160,12 @@
 
   let isOpen = false;
   let frameLoaded = false;
+
+  function setHintVisible(visible) {
+    if (!hint || hint.style.display === 'none' || subtextDisplay !== 'hover') return;
+    hint.style.opacity = visible ? '1' : '0';
+    hint.style.transform = visible ? 'translateY(0)' : 'translateY(8px)';
+  }
 
   function postConfig() {
     if (!project || !frame.contentWindow) return;
@@ -197,6 +233,10 @@
 
   if (launcher) {
     launcher.addEventListener('click', () => syncOpenState(!isOpen));
+    launcher.addEventListener('mouseenter', () => setHintVisible(true));
+    launcher.addEventListener('mouseleave', () => setHintVisible(false));
+    launcher.addEventListener('focus', () => setHintVisible(true));
+    launcher.addEventListener('blur', () => setHintVisible(false));
 
     document.addEventListener('keydown', (event) => {
       if (event.key === 'Escape' && isOpen) {
@@ -214,6 +254,9 @@
   root.appendChild(panel);
   if (launcher) {
     root.appendChild(launcher);
+  }
+  if (hint) {
+    root.appendChild(hint);
   }
   mountTarget.appendChild(root);
 
