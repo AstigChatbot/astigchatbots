@@ -23,8 +23,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const headerStatusDot = document.getElementById('header-status-dot');
     const webhookToggle = document.getElementById('webhook-toggle');
     const refreshBtn = document.getElementById('refresh-btn');
+    const telemetryBtn = document.getElementById('telemetry-menu-btn');
     const saveProjectBtn = document.getElementById('save-project-btn');
     const openProjectBtn = document.getElementById('open-project-btn');
+    const newProjectBtn = document.getElementById('new-project-btn');
     const openProjectFileInput = document.getElementById('open-project-file');
     const embedBtn = document.querySelector('.floating-menu .menu-btn.embed');
     const embedDrawer = document.getElementById('embed-drawer');
@@ -42,6 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const widgetClose = document.getElementById('widget-close');
     const widgetLabelInput = document.getElementById('widget-label');
     const widgetSubtextInput = document.getElementById('widget-subtext');
+    const widgetSubtextDisplaySelect = document.getElementById('widget-subtext-display');
     const widgetIconInput = document.getElementById('widget-icon-url');
     const widgetIconSizeInput = document.getElementById('widget-icon-size');
     const widgetShapeSelect = document.getElementById('widget-shape');
@@ -229,6 +232,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const copyInlineEmbedBtn = document.getElementById('copy-inline-embed');
     const downloadEmbedJsBtn = document.getElementById('download-embed-js');
     const downloadEmbedCssBtn = document.getElementById('download-embed-css');
+    const telemetryPanel = document.getElementById('telemetry-panel');
+    const telemetryOverlay = document.getElementById('telemetry-overlay');
+    const telemetryClose = document.getElementById('telemetry-close');
+    const telemetryStatusBadge = document.getElementById('telemetry-status-badge');
+    const telemetryStageList = document.getElementById('telemetry-stage-list');
+    const telemetryLogList = document.getElementById('telemetry-log-list');
+    const telemetrySessionId = document.getElementById('telemetry-session-id');
+    const telemetryWebhookUrl = document.getElementById('telemetry-webhook-url');
+    const telemetryLastResult = document.getElementById('telemetry-last-result');
+    const telemetryRawLabel = document.getElementById('telemetry-raw-label');
+    const telemetryRawFeed = document.getElementById('telemetry-raw-feed');
 
     // Webhook URLs
     const WEBHOOK_URL_PROD = 'https://n8n.srv1291312.hstgr.cloud/webhook/33042864-3282-4dd6-95ab-6ffa983a8196';
@@ -254,6 +268,7 @@ document.addEventListener('DOMContentLoaded', () => {
         token: 'cherry.github.token',
         launcherLabel: 'cherry.launcher.label',
         launcherSubtext: 'cherry.launcher.subtext',
+        launcherSubtextDisplay: 'cherry.launcher.subtextDisplay',
         launcherIcon: 'cherry.launcher.icon',
         launcherIconSize: 'cherry.launcher.iconSize',
         launcherShape: 'cherry.launcher.shape',
@@ -374,8 +389,108 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function getTelemetryTimestamp() {
+        return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+
+    function renderTelemetry() {
+        if (telemetryStatusBadge) {
+            telemetryStatusBadge.textContent = telemetryState.status.toUpperCase();
+            telemetryStatusBadge.classList.toggle('is-live', telemetryState.status === 'live');
+            telemetryStatusBadge.classList.toggle('is-error', telemetryState.status === 'error');
+        }
+        if (telemetrySessionId) telemetrySessionId.textContent = formData.sessionId || 'Waiting...';
+        if (telemetryWebhookUrl) telemetryWebhookUrl.textContent = currentWebhookUrl || 'Not set';
+        if (telemetryLastResult) telemetryLastResult.textContent = telemetryState.lastResult;
+        if (telemetryRawLabel) telemetryRawLabel.textContent = telemetryState.rawLabel;
+        if (telemetryRawFeed) telemetryRawFeed.textContent = telemetryState.rawFeed;
+
+        if (telemetryStageList) {
+            telemetryStageList.innerHTML = telemetryState.stages.map(stage => `
+                <article class="telemetry-stage-card${stage.state === 'error' ? ' is-error' : ''}">
+                    <div class="telemetry-stage-card__header">
+                        <span class="telemetry-stage-card__title">${escapeHtml(stage.label)}</span>
+                        <span class="telemetry-stage-card__percent">${Math.round(stage.percent)}%</span>
+                    </div>
+                    <div class="telemetry-stage-card__bar">
+                        <div class="telemetry-stage-card__bar-fill" style="width:${Math.max(0, Math.min(100, stage.percent))}%"></div>
+                    </div>
+                </article>
+            `).join('');
+        }
+
+        if (telemetryLogList) {
+            telemetryLogList.innerHTML = telemetryState.logs.map(log => `
+                <article class="telemetry-log-card">
+                    <div class="telemetry-log-card__message">${escapeHtml(log.message)}</div>
+                    <div class="telemetry-log-card__time">${escapeHtml(log.time)}</div>
+                </article>
+            `).join('');
+        }
+    }
+
+    function setTelemetryStage(key, percent, state = 'live') {
+        const stage = telemetryState.stages.find(item => item.key === key);
+        if (!stage) return;
+        stage.percent = percent;
+        stage.state = state;
+        renderTelemetry();
+    }
+
+    function resetTelemetryStages() {
+        telemetryState.stages.forEach(stage => {
+            stage.percent = 0;
+            stage.state = 'idle';
+        });
+    }
+
+    function logTelemetry(message) {
+        telemetryState.logs.unshift({
+            message,
+            time: getTelemetryTimestamp()
+        });
+        telemetryState.logs = telemetryState.logs.slice(0, 24);
+        renderTelemetry();
+    }
+
+    function updateTelemetryRaw(label, payload) {
+        telemetryState.rawLabel = label;
+        telemetryState.rawFeed = typeof payload === 'string' ? payload : JSON.stringify(payload, null, 2);
+        renderTelemetry();
+    }
+
+    function setTelemetryStatus(status, lastResult) {
+        telemetryState.status = status;
+        telemetryState.lastResult = lastResult;
+        renderTelemetry();
+    }
+
+    function openTelemetryPanel(show) {
+        if (!telemetryPanel || !telemetryOverlay) return;
+        telemetryPanel.classList.toggle('open', show);
+        telemetryOverlay.classList.toggle('show', show);
+        telemetryPanel.setAttribute('aria-hidden', show ? 'false' : 'true');
+        syncDrawerUiState();
+        if (show) {
+            renderTelemetry();
+        }
+    }
+
     // State for interactive actions
     let isAskingForEmail = false;
+    const telemetryState = {
+        status: 'idle',
+        lastResult: 'No activity yet',
+        rawLabel: 'Waiting for webhook activity...',
+        rawFeed: 'No transmissions yet.',
+        logs: [],
+        stages: [
+            { key: 'client', label: 'Client to Automation', percent: 0, state: 'idle' },
+            { key: 'processing', label: 'Automation Processing', percent: 0, state: 'idle' },
+            { key: 'clientReturn', label: 'Automation to Client', percent: 0, state: 'idle' },
+            { key: 'render', label: 'Render Response', percent: 0, state: 'idle' }
+        ]
+    };
 
     // ... (existing code) ...
 
@@ -394,9 +509,21 @@ document.addEventListener('DOMContentLoaded', () => {
     if (refreshBtn) {
         refreshBtn.addEventListener('click', hardRefresh);
     }
+    if (telemetryBtn) {
+        telemetryBtn.addEventListener('click', () => openTelemetryPanel(true));
+    }
+    if (telemetryOverlay) {
+        telemetryOverlay.addEventListener('click', () => openTelemetryPanel(false));
+    }
+    if (telemetryClose) {
+        telemetryClose.addEventListener('click', () => openTelemetryPanel(false));
+    }
 
     if (saveProjectBtn) {
         saveProjectBtn.addEventListener('click', saveCurrentProject);
+    }
+    if (newProjectBtn) {
+        newProjectBtn.addEventListener('click', createNewProject);
     }
     if (projectNameOverlay) {
         projectNameOverlay.addEventListener('click', () => closeProjectNamePrompt(null));
@@ -1270,8 +1397,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return {
             background: /^#[0-9a-f]{6}$/i.test(candidate?.background || '') ? candidate.background : defaults.background,
             style: ['glass', 'gradient', 'transparent'].includes(candidate?.style) ? candidate.style : defaults.style,
-            pageTitle: String(candidate?.pageTitle || '').trim() || defaults.pageTitle,
-            faviconUrl: String(candidate?.faviconUrl || '').trim() || defaults.faviconUrl
+            pageTitle: typeof candidate?.pageTitle === 'string' ? candidate.pageTitle.trim() : defaults.pageTitle,
+            faviconUrl: typeof candidate?.faviconUrl === 'string' ? candidate.faviconUrl.trim() : defaults.faviconUrl
         };
     }
 
@@ -1311,12 +1438,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function applyThemeBranding(settings) {
-        document.title = settings.pageTitle || getDefaultThemeSettings().pageTitle;
+        document.title = settings.pageTitle || '';
 
-        const faviconHref = resolveAvatarUrl(settings.faviconUrl) || settings.faviconUrl || getDefaultThemeSettings().faviconUrl;
-        if (!faviconHref) return;
-
+        const faviconHref = resolveAvatarUrl(settings.faviconUrl) || settings.faviconUrl || '';
         let faviconLink = document.querySelector('link[rel="icon"]');
+        if (!faviconHref) {
+            if (faviconLink) faviconLink.remove();
+            return;
+        }
+
         if (!faviconLink) {
             faviconLink = document.createElement('link');
             faviconLink.setAttribute('rel', 'icon');
@@ -1349,11 +1479,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function hydrateThemeSettings() {
+        const storedBackground = safeStorageGet(STORAGE_KEYS.themeBackground, '__missing__');
+        const storedStyle = safeStorageGet(STORAGE_KEYS.themeStyle, '__missing__');
+        const storedPageTitle = safeStorageGet(STORAGE_KEYS.themePageTitle, '__missing__');
+        const storedFaviconUrl = safeStorageGet(STORAGE_KEYS.themeFaviconUrl, '__missing__');
         themeSettings = sanitizeThemeSettings({
-            background: safeStorageGet(STORAGE_KEYS.themeBackground, getDefaultThemeSettings().background),
-            style: safeStorageGet(STORAGE_KEYS.themeStyle, getDefaultThemeSettings().style),
-            pageTitle: safeStorageGet(STORAGE_KEYS.themePageTitle, getDefaultThemeSettings().pageTitle),
-            faviconUrl: safeStorageGet(STORAGE_KEYS.themeFaviconUrl, getDefaultThemeSettings().faviconUrl)
+            background: storedBackground === '__missing__' ? getDefaultThemeSettings().background : storedBackground,
+            style: storedStyle === '__missing__' ? getDefaultThemeSettings().style : storedStyle,
+            pageTitle: storedPageTitle === '__missing__' ? getDefaultThemeSettings().pageTitle : storedPageTitle,
+            faviconUrl: storedFaviconUrl === '__missing__' ? getDefaultThemeSettings().faviconUrl : storedFaviconUrl
         });
         writeThemeFormSettings(themeSettings);
         applyThemeSettings(themeSettings);
@@ -1397,7 +1531,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function sanitizeVideoSettings(candidate = {}) {
         return {
-            enabled: candidate?.enabled !== false,
+            enabled: typeof candidate?.enabled === 'boolean' ? candidate.enabled : true,
             url: String(candidate?.url || '').trim()
         };
     }
@@ -1494,18 +1628,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function sanitizeHeaderSettings(candidate = {}) {
         const defaults = getDefaultHeaderSettings();
-        const title = String(candidate?.title || defaults.title).trim() || defaults.title;
-        const subtitle = String(candidate?.subtitle || '').trim();
+        const title = typeof candidate?.title === 'string' ? candidate.title.trim() : defaults.title;
+        const subtitle = typeof candidate?.subtitle === 'string' ? candidate.subtitle.trim() : '';
         return {
             title,
             subtitle,
-            showStatusDot: candidate?.showStatusDot !== false,
-            showSubtitle: candidate?.showSubtitle === true && !!subtitle,
-            showHome: candidate?.showHome !== false,
-            showEmail: candidate?.showEmail !== false,
-            showDownload: candidate?.showDownload !== false,
-            showRestart: candidate?.showRestart !== false,
-            homeLinkUrl: String(candidate?.homeLinkUrl || defaults.homeLinkUrl).trim() || defaults.homeLinkUrl,
+            showStatusDot: typeof candidate?.showStatusDot === 'boolean' ? candidate.showStatusDot : defaults.showStatusDot,
+            showSubtitle: typeof candidate?.showSubtitle === 'boolean' ? (candidate.showSubtitle && !!subtitle) : (defaults.showSubtitle && !!subtitle),
+            showHome: typeof candidate?.showHome === 'boolean' ? candidate.showHome : defaults.showHome,
+            showEmail: typeof candidate?.showEmail === 'boolean' ? candidate.showEmail : defaults.showEmail,
+            showDownload: typeof candidate?.showDownload === 'boolean' ? candidate.showDownload : defaults.showDownload,
+            showRestart: typeof candidate?.showRestart === 'boolean' ? candidate.showRestart : defaults.showRestart,
+            homeLinkUrl: typeof candidate?.homeLinkUrl === 'string' ? candidate.homeLinkUrl.trim() : defaults.homeLinkUrl,
             homeIconUrl: String(candidate?.homeIconUrl || '').trim(),
             emailIconUrl: String(candidate?.emailIconUrl || '').trim(),
             downloadIconUrl: String(candidate?.downloadIconUrl || '').trim(),
@@ -1582,16 +1716,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function hydrateHeaderSettings() {
+        const storedTitle = safeStorageGet(STORAGE_KEYS.headerTitle, '__missing__');
+        const storedSubtitle = safeStorageGet(STORAGE_KEYS.headerSubtitle, '__missing__');
+        const storedHomeLinkUrl = safeStorageGet(STORAGE_KEYS.headerHomeLinkUrl, '__missing__');
         const settings = sanitizeHeaderSettings({
-            title: safeStorageGet(STORAGE_KEYS.headerTitle, getDefaultHeaderSettings().title),
-            subtitle: safeStorageGet(STORAGE_KEYS.headerSubtitle, getDefaultHeaderSettings().subtitle),
+            title: storedTitle === '__missing__' ? getDefaultHeaderSettings().title : storedTitle,
+            subtitle: storedSubtitle === '__missing__' ? getDefaultHeaderSettings().subtitle : storedSubtitle,
             showStatusDot: safeStorageGet(STORAGE_KEYS.headerShowStatusDot, 'true') !== 'false',
             showSubtitle: safeStorageGet(STORAGE_KEYS.headerShowSubtitle, 'false') === 'true',
             showHome: safeStorageGet(STORAGE_KEYS.headerShowHome, 'true') !== 'false',
             showEmail: safeStorageGet(STORAGE_KEYS.headerShowEmail, 'true') !== 'false',
             showDownload: safeStorageGet(STORAGE_KEYS.headerShowDownload, 'true') !== 'false',
             showRestart: safeStorageGet(STORAGE_KEYS.headerShowRestart, 'true') !== 'false',
-            homeLinkUrl: safeStorageGet(STORAGE_KEYS.headerHomeLinkUrl, getDefaultHeaderSettings().homeLinkUrl),
+            homeLinkUrl: storedHomeLinkUrl === '__missing__' ? getDefaultHeaderSettings().homeLinkUrl : storedHomeLinkUrl,
             homeIconUrl: safeStorageGet(STORAGE_KEYS.headerHomeIconUrl, ''),
             emailIconUrl: safeStorageGet(STORAGE_KEYS.headerEmailIconUrl, ''),
             downloadIconUrl: safeStorageGet(STORAGE_KEYS.headerDownloadIconUrl, ''),
@@ -1673,8 +1810,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const defaults = getDefaultFooterSettings();
         const fontSize = Number.parseInt(candidate?.fontSize, 10);
         return {
-            text: String(candidate?.text || defaults.text).trim() || defaults.text,
-            url: String(candidate?.url || defaults.url).trim() || defaults.url,
+            text: typeof candidate?.text === 'string' ? candidate.text.trim() : defaults.text,
+            url: typeof candidate?.url === 'string' ? candidate.url.trim() : defaults.url,
             fontFamily: String(candidate?.fontFamily || defaults.fontFamily).trim() || defaults.fontFamily,
             fontSize: Number.isFinite(fontSize) ? Math.min(24, Math.max(10, fontSize)) : defaults.fontSize,
             animation: ['none', 'glow', 'float', 'pulse'].includes(candidate?.animation) ? candidate.animation : defaults.animation,
@@ -1703,7 +1840,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function applyFooterSettings(settings) {
         if (!brandLink || !brandFooter) return;
         brandLink.textContent = settings.text;
-        brandLink.href = settings.url;
+        brandLink.href = settings.url || '#';
+        brandFooter.hidden = !settings.text;
         brandLink.classList.remove('footer-anim-glow', 'footer-anim-float', 'footer-anim-pulse');
         if (settings.animation !== 'none') {
             brandLink.classList.add(`footer-anim-${settings.animation}`);
@@ -1715,9 +1853,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function hydrateFooterSettings() {
+        const storedText = safeStorageGet(STORAGE_KEYS.footerBrandText, '__missing__');
+        const storedUrl = safeStorageGet(STORAGE_KEYS.footerBrandUrl, '__missing__');
         const settings = sanitizeFooterSettings({
-            text: safeStorageGet(STORAGE_KEYS.footerBrandText, getDefaultFooterSettings().text),
-            url: safeStorageGet(STORAGE_KEYS.footerBrandUrl, getDefaultFooterSettings().url),
+            text: storedText === '__missing__' ? getDefaultFooterSettings().text : storedText,
+            url: storedUrl === '__missing__' ? getDefaultFooterSettings().url : storedUrl,
             fontFamily: safeStorageGet(STORAGE_KEYS.footerFontFamily, getDefaultFooterSettings().fontFamily),
             fontSize: safeStorageGet(STORAGE_KEYS.footerFontSize, String(getDefaultFooterSettings().fontSize)),
             animation: safeStorageGet(STORAGE_KEYS.footerAnimation, getDefaultFooterSettings().animation),
@@ -1743,7 +1883,7 @@ document.addEventListener('DOMContentLoaded', () => {
             background: footerBackgroundInput?.value || ''
         });
 
-        if (!isValidHttpUrl(settings.url)) {
+        if (settings.url && !isValidHttpUrl(settings.url)) {
             setFooterStatus('Enter a valid branding URL starting with http:// or https://', 'error');
             return;
         }
@@ -1890,15 +2030,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function getCurrentLogoUrlForTarget(target) {
         if (target === 'assistant') {
-            return assistantAvatarUrlInput?.value || avatarSettings.assistant?.url || LOGO_PRESETS.assistant;
+            return assistantAvatarUrlInput?.value || avatarSettings.assistant?.url || '';
         }
         if (target === 'user') {
-            return userAvatarUrlInput?.value || avatarSettings.user?.url || LOGO_PRESETS.user;
+            return userAvatarUrlInput?.value || avatarSettings.user?.url || '';
         }
         if (target === 'launcher') {
-            return widgetIconInput?.value || safeStorageGet(STORAGE_KEYS.launcherIcon, '') || LOGO_PRESETS.launcher;
+            return widgetIconInput?.value || safeStorageGet(STORAGE_KEYS.launcherIcon, '') || '';
         }
-        return logoUrlInput?.value || safeStorageGet(STORAGE_KEYS.logoUrl, getDefaultLogoSettings().url) || getDefaultLogoSettings().url;
+        return logoUrlInput?.value || safeStorageGet(STORAGE_KEYS.logoUrl, '') || '';
     }
 
     function syncLogoPresetSelection(url) {
@@ -1938,15 +2078,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const defaults = getDefaultLogoSettings();
         const size = Number.parseInt(candidate?.size, 10);
         return {
-            url: String(candidate?.url || defaults.url).trim() || defaults.url,
+            url: typeof candidate?.url === 'string' ? candidate.url.trim() : defaults.url,
             size: Number.isFinite(size) ? Math.min(96, Math.max(18, size)) : defaults.size,
             animation: ['none', 'pulse', 'float', 'spin'].includes(candidate?.animation) ? candidate.animation : defaults.animation
         };
     }
 
     function getStoredBrandLogoSettings() {
+        const storedUrl = safeStorageGet(STORAGE_KEYS.logoUrl, '__missing__');
         return sanitizeLogoSettings({
-            url: safeStorageGet(STORAGE_KEYS.logoUrl, getDefaultLogoSettings().url),
+            url: storedUrl === '__missing__' ? getDefaultLogoSettings().url : storedUrl,
             size: safeStorageGet(STORAGE_KEYS.logoSize, String(getDefaultLogoSettings().size)),
             animation: safeStorageGet(STORAGE_KEYS.logoAnimation, getDefaultLogoSettings().animation)
         });
@@ -1970,22 +2111,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function applyLogoSettings(settings) {
-        const resolvedUrl = resolveAvatarUrl(settings.url) || 'assets/cherry-logo.png';
+        const resolvedUrl = resolveAvatarUrl(settings.url) || '';
         if (appLogoImg) {
             appLogoImg.src = resolvedUrl;
+            appLogoImg.hidden = !resolvedUrl;
             applyLogoAnimationClass(appLogoImg, settings.animation);
         }
         if (brandLogoImg) {
             brandLogoImg.src = resolvedUrl;
+            brandLogoImg.hidden = !resolvedUrl;
             applyLogoAnimationClass(brandLogoImg, settings.animation);
         }
         if (logoPreviewImg) {
             logoPreviewImg.src = resolvedUrl;
+            logoPreviewImg.hidden = !resolvedUrl;
             applyLogoAnimationClass(logoPreviewImg, settings.animation);
         }
         if (brandLogoWrap) {
             brandLogoWrap.style.width = `${settings.size}px`;
             brandLogoWrap.style.height = `${settings.size}px`;
+            brandLogoWrap.hidden = !resolvedUrl;
         }
         document.documentElement.style.setProperty('--brand-logo-size', `${settings.size}px`);
     }
@@ -2013,8 +2158,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (target === 'launcher') {
             if (widgetIconInput) widgetIconInput.value = url;
             applyLauncher(
-                (widgetLabelInput?.value || safeStorageGet(STORAGE_KEYS.launcherLabel, 'Chat with Cherry') || 'Chat with Cherry').trim(),
-                (widgetSubtextInput?.value || safeStorageGet(STORAGE_KEYS.launcherSubtext, 'We typically reply in minutes') || 'We typically reply in minutes').trim(),
+                String(widgetLabelInput?.value ?? safeStorageGet(STORAGE_KEYS.launcherLabel, '') ?? '').trim(),
+                String(widgetSubtextInput?.value ?? safeStorageGet(STORAGE_KEYS.launcherSubtext, '') ?? '').trim(),
+                widgetSubtextDisplaySelect?.value || safeStorageGet(STORAGE_KEYS.launcherSubtextDisplay, 'hover') || 'hover',
                 url,
                 widgetShapeSelect?.value || safeStorageGet(STORAGE_KEYS.launcherShape, 'circle') || 'circle',
                 widgetAnimSelect?.value || safeStorageGet(STORAGE_KEYS.launcherAnim, 'none') || 'none',
@@ -2169,6 +2315,7 @@ document.addEventListener('DOMContentLoaded', () => {
             widget: {
                 label: (widgetLabelInput?.value || safeStorageGet(STORAGE_KEYS.launcherLabel, 'Chat with Cherry') || 'Chat with Cherry').trim(),
                 subtext: (widgetSubtextInput?.value || safeStorageGet(STORAGE_KEYS.launcherSubtext, 'We typically reply in minutes') || 'We typically reply in minutes').trim(),
+                subtextDisplay: widgetSubtextDisplaySelect?.value || safeStorageGet(STORAGE_KEYS.launcherSubtextDisplay, 'hover') || 'hover',
                 icon: (widgetIconInput?.value || safeStorageGet(STORAGE_KEYS.launcherIcon, '') || '').trim(),
                 iconSize: (widgetIconSizeInput?.value || safeStorageGet(STORAGE_KEYS.launcherIconSize, '26') || '26').trim(),
                 shape: widgetShapeSelect?.value || safeStorageGet(STORAGE_KEYS.launcherShape, 'circle') || 'circle',
@@ -2191,6 +2338,230 @@ document.addEventListener('DOMContentLoaded', () => {
                 branch: (githubBranchInput?.value || safeStorageGet(STORAGE_KEYS.branch, DEFAULT_GITHUB_BRANCH) || DEFAULT_GITHUB_BRANCH).trim()
             }
         };
+    }
+
+    function getFreshProjectSnapshot() {
+        return {
+            app: 'Cherry Builder',
+            version: 1,
+            savedAt: new Date().toISOString(),
+            questionnaire: {
+                steps: getDefaultSteps(),
+                settings: getDefaultQuestionnaireSettings()
+            },
+            avatars: {
+                assistant: getDefaultAvatarSettings('assistant'),
+                user: getDefaultAvatarSettings('user')
+            },
+            footer: getDefaultFooterSettings(),
+            converse: getDefaultConverseSettings(),
+            theme: getDefaultThemeSettings(),
+            header: getDefaultHeaderSettings(),
+            video: getDefaultVideoSettings(),
+            logo: getDefaultLogoSettings(),
+            widget: {
+                label: 'Chat with Cherry',
+                subtext: 'We typically reply in minutes',
+                subtextDisplay: 'hover',
+                icon: '',
+                iconSize: '26',
+                shape: 'circle',
+                animation: 'none',
+                is3d: false
+            },
+            webhook: {
+                prod: (webhookProdInput?.value || safeStorageGet(STORAGE_KEYS.webhookProd, WEBHOOK_URL_PROD) || WEBHOOK_URL_PROD).trim(),
+                test: (webhookTestInput?.value || safeStorageGet(STORAGE_KEYS.webhookTest, WEBHOOK_URL_TEST) || WEBHOOK_URL_TEST).trim(),
+                chat: (webhookChatInput?.value || safeStorageGet(STORAGE_KEYS.webhookChat, '') || '').trim(),
+                active: 'prod'
+            },
+            embed: {
+                runtimeBase: getActiveEmbedRuntimeBase(),
+                appBase: getActiveEmbedAppBase(),
+                commit: safeStorageGet(STORAGE_KEYS.deployCommit, CURRENT_EMBED_COMMIT) || CURRENT_EMBED_COMMIT
+            },
+            github: {
+                repo: (githubUrlInput?.value || safeStorageGet(STORAGE_KEYS.repo, DEFAULT_GITHUB_REPO) || DEFAULT_GITHUB_REPO).trim(),
+                branch: (githubBranchInput?.value || safeStorageGet(STORAGE_KEYS.branch, DEFAULT_GITHUB_BRANCH) || DEFAULT_GITHUB_BRANCH).trim()
+            }
+        };
+    }
+
+    function getBlankProjectSteps() {
+        return [
+            {
+                field: '',
+                question: '',
+                placeholder: '',
+                type: 'text',
+                options: []
+            }
+        ];
+    }
+
+    function resetConversationState(showIntro = true) {
+        currentStep = 0;
+        hasStartedConversation = false;
+        isAskingForEmail = false;
+        formData.sessionId = generateSessionId();
+        formData.name = '';
+        formData.firstName = '';
+        formData.lastName = '';
+        formData.email = '';
+        formData.inquiry = '';
+        if (flowContainer) {
+            flowContainer.innerHTML = '';
+        }
+        if (showIntro) {
+            showIntroScreen();
+        }
+    }
+
+    function createBlankProjectSnapshot() {
+        return {
+            questionnaire: {
+                steps: getBlankProjectSteps(),
+                settings: getDefaultQuestionnaireSettings()
+            },
+            avatars: {
+                assistant: sanitizeAvatarSettings('assistant', { url: '' }),
+                user: sanitizeAvatarSettings('user', { url: '', hideReply: false })
+            },
+            footer: sanitizeFooterSettings({
+                text: '',
+                url: '',
+                fontFamily: getDefaultFooterSettings().fontFamily,
+                fontSize: getDefaultFooterSettings().fontSize,
+                animation: getDefaultFooterSettings().animation,
+                background: getDefaultFooterSettings().background
+            }),
+            converse: getDefaultConverseSettings(),
+            theme: sanitizeThemeSettings({
+                background: getDefaultThemeSettings().background,
+                style: getDefaultThemeSettings().style,
+                pageTitle: '',
+                faviconUrl: ''
+            }),
+            header: sanitizeHeaderSettings({
+                title: '',
+                subtitle: '',
+                showStatusDot: false,
+                showSubtitle: false,
+                showHome: false,
+                showEmail: false,
+                showDownload: false,
+                showRestart: false,
+                homeLinkUrl: '',
+                homeIconUrl: '',
+                emailIconUrl: '',
+                downloadIconUrl: '',
+                restartIconUrl: ''
+            }),
+            video: sanitizeVideoSettings({
+                enabled: false,
+                url: ''
+            }),
+            logo: sanitizeLogoSettings({
+                url: '',
+                size: getDefaultLogoSettings().size,
+                animation: getDefaultLogoSettings().animation
+            }),
+            widget: {
+                label: '',
+                subtext: '',
+                subtextDisplay: 'hidden',
+                icon: '',
+                iconSize: '26',
+                shape: 'circle',
+                animation: 'none',
+                is3d: false
+            },
+            webhook: {
+                prod: '',
+                test: '',
+                chat: '',
+                active: 'prod'
+            },
+            github: {
+                repo: '',
+                branch: '',
+                token: ''
+            }
+        };
+    }
+
+    function persistBlankProjectStorage(snapshot) {
+        safeStorageSet(STORAGE_KEYS.questionnaireSteps, JSON.stringify(snapshot.questionnaire.steps));
+        safeStorageSet(STORAGE_KEYS.questionFontFamily, snapshot.questionnaire.settings.fontFamily);
+        safeStorageSet(STORAGE_KEYS.questionFontSize, String(snapshot.questionnaire.settings.fontSize));
+        safeStorageSet(STORAGE_KEYS.questionAnimation, snapshot.questionnaire.settings.animation);
+        safeStorageSet(STORAGE_KEYS.questionEmoji, snapshot.questionnaire.settings.emoji);
+        safeStorageSet(STORAGE_KEYS.assistantAvatar, JSON.stringify(snapshot.avatars.assistant));
+        safeStorageSet(STORAGE_KEYS.userAvatar, JSON.stringify(snapshot.avatars.user));
+        safeStorageSet(STORAGE_KEYS.footerBrandText, snapshot.footer.text);
+        safeStorageSet(STORAGE_KEYS.footerBrandUrl, snapshot.footer.url);
+        safeStorageSet(STORAGE_KEYS.footerFontFamily, snapshot.footer.fontFamily);
+        safeStorageSet(STORAGE_KEYS.footerFontSize, String(snapshot.footer.fontSize));
+        safeStorageSet(STORAGE_KEYS.footerAnimation, snapshot.footer.animation);
+        safeStorageSet(STORAGE_KEYS.footerBackground, snapshot.footer.background);
+        safeStorageSet(STORAGE_KEYS.converseAssistantFontFamily, snapshot.converse.assistant.fontFamily);
+        safeStorageSet(STORAGE_KEYS.converseAssistantFontSize, String(snapshot.converse.assistant.fontSize));
+        safeStorageSet(STORAGE_KEYS.converseAssistantAnimation, snapshot.converse.assistant.animation);
+        safeStorageSet(STORAGE_KEYS.converseUserFontFamily, snapshot.converse.user.fontFamily);
+        safeStorageSet(STORAGE_KEYS.converseUserFontSize, String(snapshot.converse.user.fontSize));
+        safeStorageSet(STORAGE_KEYS.converseUserAnimation, snapshot.converse.user.animation);
+        safeStorageSet(STORAGE_KEYS.themeBackground, snapshot.theme.background);
+        safeStorageSet(STORAGE_KEYS.themeStyle, snapshot.theme.style);
+        safeStorageSet(STORAGE_KEYS.themePageTitle, snapshot.theme.pageTitle);
+        safeStorageSet(STORAGE_KEYS.themeFaviconUrl, snapshot.theme.faviconUrl);
+        safeStorageSet(STORAGE_KEYS.headerTitle, snapshot.header.title);
+        safeStorageSet(STORAGE_KEYS.headerSubtitle, snapshot.header.subtitle);
+        safeStorageSet(STORAGE_KEYS.headerShowStatusDot, String(snapshot.header.showStatusDot));
+        safeStorageSet(STORAGE_KEYS.headerShowSubtitle, String(snapshot.header.showSubtitle));
+        safeStorageSet(STORAGE_KEYS.headerShowHome, String(snapshot.header.showHome));
+        safeStorageSet(STORAGE_KEYS.headerShowEmail, String(snapshot.header.showEmail));
+        safeStorageSet(STORAGE_KEYS.headerShowDownload, String(snapshot.header.showDownload));
+        safeStorageSet(STORAGE_KEYS.headerShowRestart, String(snapshot.header.showRestart));
+        safeStorageSet(STORAGE_KEYS.headerHomeLinkUrl, snapshot.header.homeLinkUrl);
+        safeStorageSet(STORAGE_KEYS.headerHomeIconUrl, snapshot.header.homeIconUrl);
+        safeStorageSet(STORAGE_KEYS.headerEmailIconUrl, snapshot.header.emailIconUrl);
+        safeStorageSet(STORAGE_KEYS.headerDownloadIconUrl, snapshot.header.downloadIconUrl);
+        safeStorageSet(STORAGE_KEYS.headerRestartIconUrl, snapshot.header.restartIconUrl);
+        safeStorageSet(STORAGE_KEYS.videoEnabled, String(snapshot.video.enabled));
+        safeStorageSet(STORAGE_KEYS.videoUrl, snapshot.video.url);
+        safeStorageSet(STORAGE_KEYS.logoUrl, snapshot.logo.url);
+        safeStorageSet(STORAGE_KEYS.logoSize, String(snapshot.logo.size));
+        safeStorageSet(STORAGE_KEYS.logoAnimation, snapshot.logo.animation);
+        safeStorageSet(STORAGE_KEYS.logoTarget, 'brand');
+        safeStorageSet(STORAGE_KEYS.logoPreset, '');
+        safeStorageSet(STORAGE_KEYS.launcherLabel, snapshot.widget.label);
+        safeStorageSet(STORAGE_KEYS.launcherSubtext, snapshot.widget.subtext);
+        safeStorageSet(STORAGE_KEYS.launcherSubtextDisplay, snapshot.widget.subtextDisplay);
+        safeStorageSet(STORAGE_KEYS.launcherIcon, snapshot.widget.icon);
+        safeStorageSet(STORAGE_KEYS.launcherIconSize, snapshot.widget.iconSize);
+        safeStorageSet(STORAGE_KEYS.launcherShape, snapshot.widget.shape);
+        safeStorageSet(STORAGE_KEYS.launcherAnim, snapshot.widget.animation);
+        safeStorageSet(STORAGE_KEYS.launcher3d, String(snapshot.widget.is3d));
+        safeStorageSet(STORAGE_KEYS.webhookProd, snapshot.webhook.prod);
+        safeStorageSet(STORAGE_KEYS.webhookTest, snapshot.webhook.test);
+        safeStorageSet(STORAGE_KEYS.webhookChat, snapshot.webhook.chat);
+        safeStorageSet(STORAGE_KEYS.webhookActive, snapshot.webhook.active);
+        safeStorageSet(STORAGE_KEYS.repo, snapshot.github.repo);
+        safeStorageSet(STORAGE_KEYS.branch, snapshot.github.branch);
+        safeStorageSet(STORAGE_KEYS.token, snapshot.github.token);
+        safeStorageRemove(STORAGE_KEYS.projectSnapshot);
+    }
+
+    function createNewProject() {
+        try {
+            const defaultSnapshot = getFreshProjectSnapshot();
+            loadProjectSnapshot(defaultSnapshot);
+            safeStorageRemove(STORAGE_KEYS.projectSnapshot);
+            if (newProjectBtn) flashButton(newProjectBtn, 'New');
+            showDeployStatus('New chatbot reset to the builder default settings.', 100, 'success');
+        } catch (error) {
+            showDeployStatus(`Could not start a new chatbot: ${error.message}`, 100, 'error');
+        }
     }
 
     function sanitizeProjectFilename(name) {
@@ -2512,17 +2883,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const widgetSettings = snapshot?.widget || {};
         if (widgetLabelInput) widgetLabelInput.value = widgetSettings.label || 'Chat with Cherry';
         if (widgetSubtextInput) widgetSubtextInput.value = widgetSettings.subtext || 'We typically reply in minutes';
+        if (widgetSubtextDisplaySelect) widgetSubtextDisplaySelect.value = widgetSettings.subtextDisplay || 'hover';
         if (widgetIconInput) widgetIconInput.value = widgetSettings.icon || '';
         if (widgetIconSizeInput) widgetIconSizeInput.value = String(widgetSettings.iconSize || '26');
         if (widgetShapeSelect) widgetShapeSelect.value = widgetSettings.shape || 'circle';
         if (widgetAnimSelect) widgetAnimSelect.value = widgetSettings.animation || 'none';
         if (widget3dCheckbox) widget3dCheckbox.checked = !!widgetSettings.is3d;
-        if (widgetLabelInput && widgetSubtextInput && widgetIconInput && widgetIconSizeInput && widgetShapeSelect && widgetAnimSelect && widget3dCheckbox) {
+        if (widgetLabelInput && widgetSubtextInput && widgetSubtextDisplaySelect && widgetIconInput && widgetIconSizeInput && widgetShapeSelect && widgetAnimSelect && widget3dCheckbox) {
             saveWidgetSettings();
         } else {
             applyLauncher(
                 widgetSettings.label || 'Chat with Cherry',
                 widgetSettings.subtext || 'We typically reply in minutes',
+                widgetSettings.subtextDisplay || 'hover',
                 widgetSettings.icon || '',
                 widgetSettings.shape || 'circle',
                 widgetSettings.animation || 'none',
@@ -2568,17 +2941,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setActiveEmbedBases(runtimeBase, appBase, embedSettings.commit || '');
         updateEmbedCode();
 
-        currentStep = 0;
-        hasStartedConversation = false;
-        isAskingForEmail = false;
-        formData.sessionId = generateSessionId();
-        formData.name = '';
-        formData.firstName = '';
-        formData.lastName = '';
-        formData.email = '';
-        formData.inquiry = '';
-        flowContainer.innerHTML = '';
-        showIntroScreen();
+        resetConversationState(true);
     }
 
     window.addEventListener('message', (event) => {
@@ -2610,6 +2973,9 @@ document.addEventListener('DOMContentLoaded', () => {
     hydrateGithubSettings();
     hydrateWebhookSettings();
     hydrateWidgetSettings();
+    resetTelemetryStages();
+    logTelemetry('Monitor ready. Awaiting webhook activity.');
+    renderTelemetry();
 
 
 
@@ -2917,6 +3283,10 @@ document.addEventListener('DOMContentLoaded', () => {
         userInput.disabled = false;
         userInput.value = '';
         userInput.placeholder = "Type here...";
+        logTelemetry(`Conversation started for session ${formData.sessionId}.`);
+        setTelemetryStatus('idle', 'Conversation ready');
+        updateTelemetryRaw('Waiting for webhook activity...', 'No transmissions yet.');
+        resetTelemetryStages();
         renderStep();
     }
 
@@ -3345,6 +3715,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 ...flattenedFields
             };
 
+            setTelemetryStatus('live', 'Sending webhook request');
+            setTelemetryStage('client', 100, 'live');
+            setTelemetryStage('processing', 25, 'live');
+            setTelemetryStage('clientReturn', 0, 'idle');
+            setTelemetryStage('render', 0, 'idle');
+            logTelemetry(`Request sent to webhook for session ${formData.sessionId}.`);
+            updateTelemetryRaw(`Outgoing request to ${currentWebhookUrl || '(no webhook url)'}`, payload);
+
             const response = await fetch(currentWebhookUrl, {
                 method: 'POST',
                 headers: {
@@ -3352,6 +3730,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 body: JSON.stringify(payload)
             });
+
+            setTelemetryStage('processing', 100, 'live');
+            setTelemetryStage('clientReturn', 70, 'live');
 
             const responseText = await response.text();
             let parsedResponse = null;
@@ -3363,8 +3744,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             const botReply = extractBotReply(parsedResponse) || (responseText.trim() ? responseText.trim() : "Thank you for reaching out.");
+            updateTelemetryRaw(`Incoming response (${response.status})`, responseText || parsedResponse || { status: response.status });
 
             if (!response.ok) {
+                setTelemetryStatus('error', `Webhook error ${response.status}`);
+                setTelemetryStage('clientReturn', 100, 'error');
+                setTelemetryStage('render', 0, 'error');
+                logTelemetry(`Webhook returned error status ${response.status}.`);
                 if (botReply && botReply !== "Thank you for reaching out.") {
                     stepDiv.innerHTML = `<h2>${formatBotReply(botReply)}</h2>`;
                     appendRsvpRecoveryActions(stepDiv, botReply);
@@ -3376,6 +3762,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             stepDiv.innerHTML = `<h2>${formatBotReply(botReply)}</h2>`;
             appendRsvpRecoveryActions(stepDiv, botReply);
+            setTelemetryStage('clientReturn', 100, 'live');
+            setTelemetryStage('render', 100, 'live');
+            setTelemetryStatus('idle', 'Last webhook completed successfully');
+            logTelemetry('Webhook response received and rendered in the chatbot.');
             scrollToBottom(); // Scroll to show bot response
 
 
@@ -3383,6 +3773,15 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error(error);
             const failedUrl = currentWebhookUrl || '(no webhook url)';
             stepDiv.innerHTML = `<h2>Error: ${error.message}<br><span style="font-size:0.7em;opacity:0.75;">${failedUrl}</span></h2>`;
+            setTelemetryStatus('error', error.message);
+            setTelemetryStage('processing', 100, 'error');
+            setTelemetryStage('clientReturn', 100, 'error');
+            setTelemetryStage('render', 0, 'error');
+            logTelemetry(`Webhook request failed: ${error.message}`);
+            updateTelemetryRaw(`Request failed for ${failedUrl}`, {
+                error: error.message,
+                sessionId: formData.sessionId
+            });
         } finally {
             userInput.disabled = false;
             userInput.placeholder = "Type here...";
@@ -3455,6 +3854,10 @@ document.addEventListener('DOMContentLoaded', () => {
         setPrimaryInputMode('default');
         userInput.disabled = false;
         userInput.placeholder = "Type here...";
+        logTelemetry(`Conversation restarted and session ${formData.sessionId} renewed.`);
+        setTelemetryStatus('idle', 'Conversation restarted');
+        updateTelemetryRaw('Waiting for webhook activity...', 'No transmissions yet.');
+        resetTelemetryStages();
         if (showIntro) {
             showIntroScreen();
             return;
@@ -3918,6 +4321,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const is3d = !!snapshot?.widget?.is3d;
         const label = snapshot?.widget?.label || 'Chat with Cherry';
         const subtext = snapshot?.widget?.subtext || 'We typically reply in minutes';
+        const subtextDisplay = snapshot?.widget?.subtextDisplay || 'hover';
         const iconSize = snapshot?.widget?.iconSize || '26';
         const encodedProject = encodeEmbedSnapshot(snapshot);
         return {
@@ -3930,6 +4334,7 @@ document.addEventListener('DOMContentLoaded', () => {
             is3d,
             label,
             subtext,
+            subtextDisplay,
             iconSize,
             encodedProject
         };
@@ -3946,6 +4351,7 @@ document.addEventListener('DOMContentLoaded', () => {
             is3d,
             label,
             subtext,
+            subtextDisplay,
             iconSize,
             encodedProject
         } = getEmbedSnippetData();
@@ -3955,6 +4361,7 @@ document.addEventListener('DOMContentLoaded', () => {
             `data-app-url="${appUrl}"`,
             `data-label="${label.replace(/"/g, '&quot;')}"`,
             `data-subtext="${subtext.replace(/"/g, '&quot;')}"`,
+            `data-subtext-display="${subtextDisplay}"`,
             `data-icon-size="${String(iconSize).replace(/"/g, '&quot;')}"`,
             `data-icon-shape="${shape}"`,
             `data-icon-anim="${anim}"`,
@@ -4053,15 +4460,30 @@ document.addEventListener('DOMContentLoaded', () => {
     // -----------------------------
     // Widget settings
     // -----------------------------
-    function applyLauncher(label, subtext, iconUrl, shape, anim, is3d, iconSize) {
-        const lbl = label || 'Chat with Cherry';
-        const sub = subtext || 'We typically reply in minutes';
+    function ensureLauncherHint() {
+        if (!launcher || !launcher.parentElement) return null;
+        let hint = document.getElementById('chat-launcher-hint');
+        if (!hint) {
+            hint = document.createElement('div');
+            hint.id = 'chat-launcher-hint';
+            hint.className = 'chat-launcher-hint';
+            launcher.insertAdjacentElement('afterend', hint);
+        }
+        return hint;
+    }
+
+    function applyLauncher(label, subtext, subtextDisplay, iconUrl, shape, anim, is3d, iconSize) {
+        const lbl = String(label || '').trim();
+        const sub = String(subtext || '').trim();
+        const displayMode = ['hover', 'always', 'hidden'].includes(subtextDisplay) ? subtextDisplay : 'hover';
         const shapeClass = shape || 'circle';
         const animClass = anim || 'none';
         const size = parseInt(iconSize, 10) || 26;
+        const launcherHint = ensureLauncherHint();
         if (launcher) {
-            launcher.setAttribute('aria-label', lbl);
-            launcher.title = `${lbl} — ${sub}`;
+            launcher.setAttribute('aria-label', lbl || 'Chat launcher');
+            launcher.title = displayMode === 'hidden' ? lbl : [lbl, sub].filter(Boolean).join(' — ');
+            launcher.dataset.subtextDisplay = displayMode;
             launcher.classList.remove('circle', 'rounded', 'square', 'anim-pulse', 'anim-float', 'chat-launcher--3d');
             launcher.classList.add(shapeClass);
             if (animClass === 'pulse') launcher.classList.add('anim-pulse');
@@ -4070,6 +4492,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (launcherLabel) launcherLabel.textContent = lbl;
         if (launcherSubtext) launcherSubtext.textContent = sub;
+        if (launcherHint) {
+            launcherHint.textContent = sub;
+            launcherHint.hidden = displayMode === 'hidden' || !sub;
+        }
         if (launcherIcon) {
             if (iconUrl) {
                 launcherIcon.style.backgroundImage = `url('${iconUrl}')`;
@@ -4082,8 +4508,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function hydrateWidgetSettings() {
-        const label = safeStorageGet(STORAGE_KEYS.launcherLabel, 'Chat with Cherry') || 'Chat with Cherry';
-        const subtext = safeStorageGet(STORAGE_KEYS.launcherSubtext, 'We typically reply in minutes') || 'We typically reply in minutes';
+        const storedLabel = safeStorageGet(STORAGE_KEYS.launcherLabel, '__missing__');
+        const storedSubtext = safeStorageGet(STORAGE_KEYS.launcherSubtext, '__missing__');
+        const label = storedLabel === '__missing__' ? 'Chat with Cherry' : storedLabel;
+        const subtext = storedSubtext === '__missing__' ? 'We typically reply in minutes' : storedSubtext;
+        const subtextDisplay = safeStorageGet(STORAGE_KEYS.launcherSubtextDisplay, 'hover') || 'hover';
         const icon = safeStorageGet(STORAGE_KEYS.launcherIcon, '') || '';
         const iconSize = safeStorageGet(STORAGE_KEYS.launcherIconSize, '26') || '26';
         const shape = safeStorageGet(STORAGE_KEYS.launcherShape, 'circle') || 'circle';
@@ -4091,17 +4520,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const is3d = safeStorageGet(STORAGE_KEYS.launcher3d, 'false') === 'true';
         if (widgetLabelInput) widgetLabelInput.value = label;
         if (widgetSubtextInput) widgetSubtextInput.value = subtext;
+        if (widgetSubtextDisplaySelect) widgetSubtextDisplaySelect.value = subtextDisplay;
         if (widgetIconInput) widgetIconInput.value = icon;
         if (widgetIconSizeInput) widgetIconSizeInput.value = iconSize;
         if (widgetShapeSelect) widgetShapeSelect.value = shape;
         if (widgetAnimSelect) widgetAnimSelect.value = anim;
         if (widget3dCheckbox) widget3dCheckbox.checked = is3d;
-        applyLauncher(label, subtext, icon, shape, anim, is3d, iconSize);
+        applyLauncher(label, subtext, subtextDisplay, icon, shape, anim, is3d, iconSize);
     }
 
     function saveWidgetSettings() {
-        const label = (widgetLabelInput?.value || 'Chat with Cherry').trim() || 'Chat with Cherry';
-        const subtext = (widgetSubtextInput?.value || 'We typically reply in minutes').trim() || 'We typically reply in minutes';
+        const label = (widgetLabelInput?.value || '').trim();
+        const subtext = (widgetSubtextInput?.value || '').trim();
+        const subtextDisplay = widgetSubtextDisplaySelect?.value || 'hover';
         const icon = (widgetIconInput?.value || '').trim();
         const iconSize = (widgetIconSizeInput?.value || '26').trim() || '26';
         const shape = widgetShapeSelect?.value || 'circle';
@@ -4109,12 +4540,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const is3d = !!widget3dCheckbox?.checked;
         safeStorageSet(STORAGE_KEYS.launcherLabel, label);
         safeStorageSet(STORAGE_KEYS.launcherSubtext, subtext);
+        safeStorageSet(STORAGE_KEYS.launcherSubtextDisplay, subtextDisplay);
         safeStorageSet(STORAGE_KEYS.launcherIcon, icon);
         safeStorageSet(STORAGE_KEYS.launcherIconSize, iconSize);
         safeStorageSet(STORAGE_KEYS.launcherShape, shape);
         safeStorageSet(STORAGE_KEYS.launcherAnim, anim);
         safeStorageSet(STORAGE_KEYS.launcher3d, String(is3d));
-        applyLauncher(label, subtext, icon, shape, anim, is3d, iconSize);
+        applyLauncher(label, subtext, subtextDisplay, icon, shape, anim, is3d, iconSize);
         setWidgetStatus('Launcher saved.', 'success');
     }
 
@@ -4505,11 +4937,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function hydrateGithubSettings() {
         try {
-            const repo = localStorage.getItem(STORAGE_KEYS.repo) || DEFAULT_GITHUB_REPO;
-            const branch = localStorage.getItem(STORAGE_KEYS.branch) || DEFAULT_GITHUB_BRANCH;
+            const repo = localStorage.getItem(STORAGE_KEYS.repo);
+            const branch = localStorage.getItem(STORAGE_KEYS.branch);
             const token = localStorage.getItem(STORAGE_KEYS.token);
             if (githubUrlInput) githubUrlInput.value = repo || '';
-            if (githubBranchInput) githubBranchInput.value = branch;
+            if (githubBranchInput) githubBranchInput.value = branch || '';
             if (githubTokenInput) githubTokenInput.value = token || '';
             setCredsStatus(token ? 'Ready to deploy.' : 'Paste your GitHub token once, then press Deploy.', token ? 'success' : 'error');
         } catch (e) {
@@ -4520,11 +4952,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function saveGithubSettings() {
         try {
             if (githubUrlInput) {
-                githubUrlInput.value = githubUrlInput.value.trim() || DEFAULT_GITHUB_REPO;
+                githubUrlInput.value = githubUrlInput.value.trim();
                 localStorage.setItem(STORAGE_KEYS.repo, githubUrlInput.value);
             }
             if (githubBranchInput) {
-                githubBranchInput.value = githubBranchInput.value.trim() || DEFAULT_GITHUB_BRANCH;
+                githubBranchInput.value = githubBranchInput.value.trim();
                 localStorage.setItem(STORAGE_KEYS.branch, githubBranchInput.value);
             }
             flashButton(saveGithubSettingsBtn, 'Saved');
@@ -4575,8 +5007,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function hydrateWebhookSettings() {
-        const prod = safeStorageGet(STORAGE_KEYS.webhookProd, WEBHOOK_URL_PROD) || WEBHOOK_URL_PROD;
-        const test = safeStorageGet(STORAGE_KEYS.webhookTest, WEBHOOK_URL_TEST) || WEBHOOK_URL_TEST;
+        const storedProd = safeStorageGet(STORAGE_KEYS.webhookProd, '__missing__');
+        const storedTest = safeStorageGet(STORAGE_KEYS.webhookTest, '__missing__');
+        const prod = storedProd === '__missing__' ? WEBHOOK_URL_PROD : storedProd;
+        const test = storedTest === '__missing__' ? WEBHOOK_URL_TEST : storedTest;
         const chat = safeStorageGet(STORAGE_KEYS.webhookChat, '') || '';
         const active = safeStorageGet(STORAGE_KEYS.webhookActive, 'prod') || 'prod';
 
@@ -4590,8 +5024,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function saveWebhookSettings() {
         try {
-            if (webhookProdInput) safeStorageSet(STORAGE_KEYS.webhookProd, webhookProdInput.value.trim() || WEBHOOK_URL_PROD);
-            if (webhookTestInput) safeStorageSet(STORAGE_KEYS.webhookTest, webhookTestInput.value.trim() || WEBHOOK_URL_TEST);
+            if (webhookProdInput) safeStorageSet(STORAGE_KEYS.webhookProd, webhookProdInput.value.trim());
+            if (webhookTestInput) safeStorageSet(STORAGE_KEYS.webhookTest, webhookTestInput.value.trim());
             if (webhookChatInput) safeStorageSet(STORAGE_KEYS.webhookChat, webhookChatInput.value.trim());
             if (saveWebhookSettingsBtn) flashButton(saveWebhookSettingsBtn, 'Saved');
             updateWebhookStatus('Saved webhook URLs.', 'success');
@@ -4607,13 +5041,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function setActiveWebhook(mode, persist = true) {
-        const prod = webhookProdInput?.value?.trim() || safeStorageGet(STORAGE_KEYS.webhookProd, WEBHOOK_URL_PROD) || WEBHOOK_URL_PROD;
-        const test = webhookTestInput?.value?.trim() || safeStorageGet(STORAGE_KEYS.webhookTest, WEBHOOK_URL_TEST) || WEBHOOK_URL_TEST;
+        const storedProd = safeStorageGet(STORAGE_KEYS.webhookProd, '__missing__');
+        const storedTest = safeStorageGet(STORAGE_KEYS.webhookTest, '__missing__');
+        const prod = webhookProdInput?.value?.trim() || (storedProd === '__missing__' ? WEBHOOK_URL_PROD : storedProd) || '';
+        const test = webhookTestInput?.value?.trim() || (storedTest === '__missing__' ? WEBHOOK_URL_TEST : storedTest) || '';
         const chat = webhookChatInput?.value?.trim() || safeStorageGet(STORAGE_KEYS.webhookChat, '') || '';
 
         switch (mode) {
             case 'test':
-                currentWebhookUrl = test || WEBHOOK_URL_TEST;
+                currentWebhookUrl = test || '';
                 if (webhookToggle) webhookToggle.checked = true;
                 break;
             case 'chat':
@@ -4621,7 +5057,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (webhookToggle) webhookToggle.checked = false;
                 break;
             default:
-                currentWebhookUrl = prod || WEBHOOK_URL_PROD;
+                currentWebhookUrl = prod || '';
                 if (webhookToggle) webhookToggle.checked = false;
                 mode = 'prod';
         }
