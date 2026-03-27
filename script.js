@@ -3156,13 +3156,23 @@ document.addEventListener('DOMContentLoaded', () => {
     hydrateHeaderSettings();
     hydrateVideoSettings();
     hydrateLogoSettings();
-    showIntroScreen();
     syncQuestionTypeUi(questionTypeSelect?.value || 'text');
     updateEmbedDefaults();
     updateEmbedCode();
     hydrateGithubSettings();
     hydrateWebhookSettings();
     hydrateWidgetSettings();
+    const urlEmbedSnapshot = getUrlEmbedSnapshot();
+    if (urlEmbedSnapshot) {
+        try {
+            loadProjectSnapshot(urlEmbedSnapshot);
+        } catch (error) {
+            console.warn('Cherry URL embed config could not be applied.', error);
+            showIntroScreen();
+        }
+    } else {
+        showIntroScreen();
+    }
     resetTelemetryStages();
     logTelemetry('Monitor ready. Awaiting webhook activity.');
     renderTelemetry();
@@ -4504,6 +4514,32 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function decodeEmbedSnapshot(encoded) {
+        try {
+            const normalized = String(encoded || '').replace(/-/g, '+').replace(/_/g, '/');
+            const padded = normalized + '='.repeat((4 - (normalized.length % 4 || 4)) % 4);
+            return JSON.parse(decodeURIComponent(escape(atob(padded))));
+        } catch (_) {
+            return null;
+        }
+    }
+
+    function getUrlEmbedSnapshot() {
+        const encodedProject = pageParams.get('project') || '';
+        if (!encodedProject) return null;
+        const snapshot = decodeEmbedSnapshot(encodedProject);
+        if (!snapshot || typeof snapshot !== 'object') return null;
+        const webhook = (pageParams.get('webhook') || '').trim();
+        if (webhook) {
+            snapshot.webhook = {
+                ...(snapshot.webhook || {}),
+                prod: webhook,
+                active: 'prod'
+            };
+        }
+        return snapshot;
+    }
+
     function getEmbedSnippetData() {
         const snapshot = getProjectSnapshot();
         const runtimeBase = ((embedJsUrlInput?.value || '').trim().replace(/\/auto-embed\.js$/i, '')) || getActiveEmbedRuntimeBase();
@@ -4580,27 +4616,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function buildInlineEmbedCode() {
         const {
-            jsUrl,
             appUrl,
             webhook,
             encodedProject
         } = getEmbedSnippetData();
-        const containerId = (embedContainerIdInput?.value || 'cherry-embed').trim() || 'cherry-embed';
-        const safeContainerId = containerId.replace(/"/g, '&quot;');
-        const attrs = [
-            `src="${jsUrl}"`,
-            'data-mode="inline"',
-            `data-target="${safeContainerId}"`,
-            `data-webhook="${webhook.replace(/"/g, '&quot;')}"`,
-            `data-app-url="${appUrl.replace(/"/g, '&quot;')}"`
-        ];
-
-        if (encodedProject) {
-            attrs.push(`data-project="${encodedProject}"`);
-        }
-
-        return `<div id="${safeContainerId}" style="width:min(100%, 600px);min-height:720px;margin:0 auto;"></div>
-<script ${attrs.join(' ')}></script>`;
+        const iframeUrl = new URL(appUrl, window.location.href);
+        iframeUrl.searchParams.set('embed', '1');
+        iframeUrl.searchParams.set('inline', '1');
+        if (encodedProject) iframeUrl.searchParams.set('project', encodedProject);
+        if (webhook) iframeUrl.searchParams.set('webhook', webhook);
+        return `<iframe src="${iframeUrl.toString().replace(/"/g, '&quot;')}" style="width:min(100%, 600px);min-height:720px;display:block;margin:0 auto;border:0;border-radius:24px;background:transparent;" allow="clipboard-read; clipboard-write; microphone; autoplay" loading="lazy"></iframe>`;
     }
 
     function updateEmbedCode() {
