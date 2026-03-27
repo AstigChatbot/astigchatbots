@@ -4580,71 +4580,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function buildInlineEmbedCode() {
         const {
+            jsUrl,
             appUrl,
             webhook,
             encodedProject
         } = getEmbedSnippetData();
         const containerId = (embedContainerIdInput?.value || 'cherry-embed').trim() || 'cherry-embed';
         const safeContainerId = containerId.replace(/"/g, '&quot;');
-        const appUrlLiteral = JSON.stringify(appUrl);
-        const webhookLiteral = JSON.stringify(webhook);
-        const projectLiteral = JSON.stringify(encodedProject);
-        const containerLiteral = JSON.stringify(containerId);
+        const attrs = [
+            `src="${jsUrl}"`,
+            'data-mode="inline"',
+            `data-target="${safeContainerId}"`,
+            `data-webhook="${webhook.replace(/"/g, '&quot;')}"`,
+            `data-app-url="${appUrl.replace(/"/g, '&quot;')}"`
+        ];
 
-        return `<div id="${safeContainerId}" style="width:min(100%, 600px);height:90vh;max-height:900px;margin:0 auto;"></div>
-<script>
-(() => {
-  const targetId = ${containerLiteral};
-  const container = document.getElementById(targetId);
-  if (!container) return;
+        if (encodedProject) {
+            attrs.push(`data-project="${encodedProject}"`);
+        }
 
-  const appUrl = new URL(${appUrlLiteral}, window.location.href);
-  appUrl.searchParams.set('embed', '1');
-  appUrl.searchParams.set('inline', '1');
-
-  const project = ${projectLiteral};
-  const webhook = ${webhookLiteral};
-  const iframe = document.createElement('iframe');
-  iframe.allow = 'clipboard-read; clipboard-write; microphone; autoplay';
-  iframe.loading = 'lazy';
-  iframe.style.cssText = 'width:100%;height:100%;display:block;border:0;border-radius:24px;box-shadow:none;background:transparent;';
-
-  const postConfig = () => {
-    try {
-      const normalized = project.replace(/-/g, '+').replace(/_/g, '/');
-      const padded = normalized + '='.repeat((4 - (normalized.length % 4 || 4)) % 4);
-      const snapshot = JSON.parse(decodeURIComponent(escape(atob(padded))));
-      if (webhook) {
-        snapshot.webhook = {
-          ...(snapshot.webhook || {}),
-          prod: webhook,
-          active: 'prod'
-        };
-      }
-      iframe.contentWindow.postMessage({ type: 'CHERRY_EMBED_CONFIG', snapshot }, '*');
-      setTimeout(() => iframe.contentWindow.postMessage({ type: 'CHERRY_EMBED_CONFIG', snapshot }, '*'), 150);
-    } catch (_) {}
-  };
-
-  fetch(appUrl.toString(), { cache: 'no-store' })
-    .then((response) => {
-      if (!response.ok) throw new Error('Failed to load app HTML');
-      return response.text();
-    })
-    .then((html) => {
-      const baseHref = appUrl.toString().replace(/[^/]*$/, '');
-      iframe.srcdoc = html
-        .replace(/<html([^>]*)data-cherry-embed([^>]*)>/i, '<html$1data-cherry-embed data-cherry-inline$2>')
-        .replace(/<head([^>]*)>/i, '<head$1><base href="' + baseHref + '">');
-      iframe.addEventListener('load', postConfig, { once: true });
-      container.innerHTML = '';
-      container.appendChild(iframe);
-    })
-    .catch((error) => {
-      console.error('Cherry inline embed failed.', error);
-    });
-})();
-</script>`;
+        return `<div id="${safeContainerId}" style="width:min(100%, 600px);min-height:720px;margin:0 auto;"></div>
+<script ${attrs.join(' ')}></script>`;
     }
 
     function updateEmbedCode() {
