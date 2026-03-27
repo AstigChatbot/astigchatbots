@@ -13,6 +13,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const inputArea = document.querySelector('.input-area');
     const inputWrapper = document.querySelector('.input-wrapper');
     const introScreen = document.getElementById('intro-screen');
+    const introTitle = document.getElementById('intro-title');
+    const introMessage = document.getElementById('intro-message');
     const introContinueBtn = document.getElementById('intro-continue-btn');
     const formInterface = document.querySelector('.form-interface');
     const restartBtn = document.getElementById('restart-btn');
@@ -121,6 +123,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const converseUserFontFamilySelect = document.getElementById('converse-user-font-family');
     const converseUserFontSizeInput = document.getElementById('converse-user-font-size');
     const converseUserAnimationSelect = document.getElementById('converse-user-animation');
+    const converseIntroEnabledInput = document.getElementById('converse-intro-enabled');
+    const converseIntroAnimationSelect = document.getElementById('converse-intro-animation');
+    const converseIntroTitleInput = document.getElementById('converse-intro-title');
+    const converseIntroTitleFontFamilySelect = document.getElementById('converse-intro-title-font-family');
+    const converseIntroTitleFontSizeInput = document.getElementById('converse-intro-title-font-size');
+    const converseIntroMessageInput = document.getElementById('converse-intro-message');
+    const converseIntroMessageFontFamilySelect = document.getElementById('converse-intro-message-font-family');
+    const converseIntroMessageFontSizeInput = document.getElementById('converse-intro-message-font-size');
+    const converseIntroButtonTextInput = document.getElementById('converse-intro-button-text');
+    const converseIntroButtonFontFamilySelect = document.getElementById('converse-intro-button-font-family');
+    const converseIntroButtonFontSizeInput = document.getElementById('converse-intro-button-font-size');
     const saveConverseSettingsBtn = document.getElementById('save-converse-settings');
     const converseStatus = document.getElementById('converse-status');
     const headerDrawer = document.getElementById('header-drawer');
@@ -211,6 +224,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const assistantAvatarSizeInput = document.getElementById('assistant-avatar-size');
     const assistantAvatarRadiusInput = document.getElementById('assistant-avatar-radius');
     const assistantAvatarBgInput = document.getElementById('assistant-avatar-bg');
+    const assistantAvatarHideImageInput = document.getElementById('assistant-avatar-hide-image');
     const assistantAvatarAnimateInput = document.getElementById('assistant-avatar-animate');
     const assistantAvatarAnimationSelect = document.getElementById('assistant-avatar-animation');
     const userAvatarUrlInput = document.getElementById('user-avatar-url');
@@ -220,6 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const userAvatarSizeInput = document.getElementById('user-avatar-size');
     const userAvatarRadiusInput = document.getElementById('user-avatar-radius');
     const userAvatarBgInput = document.getElementById('user-avatar-bg');
+    const userAvatarHideImageInput = document.getElementById('user-avatar-hide-image');
     const userAvatarHideReplyInput = document.getElementById('user-avatar-hide-reply');
     const userAvatarAnimateInput = document.getElementById('user-avatar-animate');
     const userAvatarAnimationSelect = document.getElementById('user-avatar-animation');
@@ -300,6 +315,17 @@ document.addEventListener('DOMContentLoaded', () => {
         converseUserFontFamily: 'cherry.converse.user.fontFamily',
         converseUserFontSize: 'cherry.converse.user.fontSize',
         converseUserAnimation: 'cherry.converse.user.animation',
+        converseIntroEnabled: 'cherry.converse.intro.enabled',
+        converseIntroAnimation: 'cherry.converse.intro.animation',
+        converseIntroTitle: 'cherry.converse.intro.title',
+        converseIntroTitleFontFamily: 'cherry.converse.intro.titleFontFamily',
+        converseIntroTitleFontSize: 'cherry.converse.intro.titleFontSize',
+        converseIntroMessage: 'cherry.converse.intro.message',
+        converseIntroMessageFontFamily: 'cherry.converse.intro.messageFontFamily',
+        converseIntroMessageFontSize: 'cherry.converse.intro.messageFontSize',
+        converseIntroButtonText: 'cherry.converse.intro.buttonText',
+        converseIntroButtonFontFamily: 'cherry.converse.intro.buttonFontFamily',
+        converseIntroButtonFontSize: 'cherry.converse.intro.buttonFontSize',
         headerTitle: 'cherry.header.title',
         headerSubtitle: 'cherry.header.subtitle',
         headerShowStatusDot: 'cherry.header.showStatusDot',
@@ -336,6 +362,7 @@ document.addEventListener('DOMContentLoaded', () => {
             sizeInput: assistantAvatarSizeInput,
             radiusInput: assistantAvatarRadiusInput,
             bgInput: assistantAvatarBgInput,
+            hideImageInput: assistantAvatarHideImageInput,
             animateInput: assistantAvatarAnimateInput,
             animationInput: assistantAvatarAnimationSelect,
             fallbackLabel: 'A'
@@ -348,6 +375,7 @@ document.addEventListener('DOMContentLoaded', () => {
             sizeInput: userAvatarSizeInput,
             radiusInput: userAvatarRadiusInput,
             bgInput: userAvatarBgInput,
+            hideImageInput: userAvatarHideImageInput,
             hideReplyInput: userAvatarHideReplyInput,
             animateInput: userAvatarAnimateInput,
             animationInput: userAvatarAnimationSelect,
@@ -731,7 +759,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (saveConverseSettingsBtn) {
         saveConverseSettingsBtn.addEventListener('click', saveConverseSettings);
     }
-    [converseAssistantFontFamilySelect, converseAssistantFontSizeInput, converseAssistantAnimationSelect, converseUserFontFamilySelect, converseUserFontSizeInput, converseUserAnimationSelect].forEach(input => {
+    [converseIntroEnabledInput, converseIntroAnimationSelect, converseIntroTitleInput, converseIntroTitleFontFamilySelect, converseIntroTitleFontSizeInput, converseIntroMessageInput, converseIntroMessageFontFamilySelect, converseIntroMessageFontSizeInput, converseIntroButtonTextInput, converseIntroButtonFontFamilySelect, converseIntroButtonFontSizeInput, converseAssistantFontFamilySelect, converseAssistantFontSizeInput, converseAssistantAnimationSelect, converseUserFontFamilySelect, converseUserFontSizeInput, converseUserAnimationSelect].forEach(input => {
         if (input) {
             input.addEventListener('input', previewConverseSettings);
             input.addEventListener('change', previewConverseSettings);
@@ -1042,6 +1070,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 size: 40,
                 radius: 50,
                 background: '#5b21b6',
+                hideImage: false,
                 hideReply: false,
                 animate: false,
                 animation: 'float'
@@ -1054,6 +1083,7 @@ document.addEventListener('DOMContentLoaded', () => {
             size: 40,
             radius: 50,
             background: '#1f2937',
+            hideImage: false,
             animate: false,
             animation: 'pulse'
         };
@@ -1069,6 +1099,7 @@ document.addEventListener('DOMContentLoaded', () => {
             size: Number.isFinite(size) ? Math.min(128, Math.max(32, size)) : defaults.size,
             radius: Number.isFinite(radius) ? Math.min(100, Math.max(0, radius)) : defaults.radius,
             background: /^#[0-9a-f]{6}$/i.test(candidate?.background || '') ? candidate.background : defaults.background,
+            hideImage: typeof candidate?.hideImage === 'boolean' ? candidate.hideImage : defaults.hideImage,
             hideReply: typeof candidate?.hideReply === 'boolean' ? candidate.hideReply : defaults.hideReply,
             animate: typeof candidate?.animate === 'boolean' ? candidate.animate : defaults.animate,
             animation: ['pulse', 'float', 'spin'].includes(candidate?.animation) ? candidate.animation : defaults.animation
@@ -1203,6 +1234,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (fields.sizeInput) fields.sizeInput.value = String(settings.size);
         if (fields.radiusInput) fields.radiusInput.value = String(settings.radius);
         if (fields.bgInput) fields.bgInput.value = settings.background;
+        if (fields.hideImageInput) fields.hideImageInput.checked = !!settings.hideImage;
         if (fields.hideReplyInput) fields.hideReplyInput.checked = !!settings.hideReply;
         if (fields.animateInput) fields.animateInput.checked = !!settings.animate;
         if (fields.animationInput) fields.animationInput.value = settings.animation;
@@ -1216,6 +1248,7 @@ document.addEventListener('DOMContentLoaded', () => {
             size: fields?.sizeInput?.value || '40',
             radius: fields?.radiusInput?.value || '50',
             background: fields?.bgInput?.value || getDefaultAvatarSettings(role).background,
+            hideImage: !!fields?.hideImageInput?.checked,
             hideReply: !!fields?.hideReplyInput?.checked,
             animate: !!fields?.animateInput?.checked,
             animation: fields?.animationInput?.value || getDefaultAvatarSettings(role).animation
@@ -1227,6 +1260,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const img = element.querySelector('img');
         const fallback = element.querySelector('.avatar-fallback');
         const resolvedUrl = resolveAvatarUrl(settings.url);
+        const hideImage = !!settings.hideImage;
         element.dataset.avatarRole = role;
         element.style.setProperty('--avatar-size', `${settings.size}px`);
         element.style.setProperty('--avatar-radius', `${settings.radius}%`);
@@ -1236,13 +1270,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (settings.animate) {
             element.classList.add(`avatar-anim-${settings.animation}`);
         }
+        element.classList.toggle('avatar-hidden', hideImage);
+        element.hidden = hideImage;
+        element.style.display = hideImage ? 'none' : '';
+        element.setAttribute('aria-hidden', hideImage ? 'true' : 'false');
 
         if (fallback) {
             fallback.textContent = AVATAR_FIELDS[role]?.fallbackLabel || role.slice(0, 1).toUpperCase();
+            fallback.hidden = hideImage;
         }
 
         if (img) {
-            if (resolvedUrl) {
+            if (resolvedUrl && !hideImage) {
                 img.src = resolvedUrl;
                 img.alt = `${role} avatar`;
                 element.classList.add('has-image');
@@ -1273,6 +1312,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         updateAvatarElement(fields.preview, previewSettings, role);
+        if (previewSettings.hideImage) {
+            setAvatarStatus(role, `${role.charAt(0).toUpperCase() + role.slice(1)} avatar will be hidden after you apply this setting.`, 'success');
+            return true;
+        }
         if (role === 'user' && previewSettings.hideReply) {
             setAvatarStatus(role, 'User replies and the user avatar will be hidden in the builder preview after you apply this setting.', 'success');
             return true;
@@ -1902,6 +1945,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function getDefaultConverseSettings() {
         return {
+            intro: {
+                enabled: true,
+                animation: 'none',
+                title: "Hi, I'm Cherry.",
+                titleFontFamily: "'Outfit', sans-serif",
+                titleFontSize: 42,
+                message: 'To get started with your RSVP, please use the exact name and email address from the invitation you received.',
+                messageFontFamily: "'Outfit', sans-serif",
+                messageFontSize: 17,
+                buttonText: 'Continue',
+                buttonFontFamily: "'Outfit', sans-serif",
+                buttonFontSize: 16
+            },
             assistant: {
                 fontFamily: "'Outfit', sans-serif",
                 fontSize: 24,
@@ -1917,9 +1973,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function sanitizeConverseSettings(candidate = {}) {
         const defaults = getDefaultConverseSettings();
+        const introTitleFontSize = Number.parseInt(candidate?.intro?.titleFontSize, 10);
+        const introMessageFontSize = Number.parseInt(candidate?.intro?.messageFontSize, 10);
+        const introButtonFontSize = Number.parseInt(candidate?.intro?.buttonFontSize, 10);
         const assistantFontSize = Number.parseInt(candidate?.assistant?.fontSize, 10);
         const userFontSize = Number.parseInt(candidate?.user?.fontSize, 10);
         return {
+            intro: {
+                enabled: typeof candidate?.intro?.enabled === 'boolean' ? candidate.intro.enabled : defaults.intro.enabled,
+                animation: ['none', 'fade', 'glow'].includes(candidate?.intro?.animation) ? candidate.intro.animation : defaults.intro.animation,
+                title: String(candidate?.intro?.title || defaults.intro.title).trim() || defaults.intro.title,
+                titleFontFamily: String(candidate?.intro?.titleFontFamily || defaults.intro.titleFontFamily).trim() || defaults.intro.titleFontFamily,
+                titleFontSize: Number.isFinite(introTitleFontSize) ? Math.min(64, Math.max(24, introTitleFontSize)) : defaults.intro.titleFontSize,
+                message: String(candidate?.intro?.message || defaults.intro.message).trim() || defaults.intro.message,
+                messageFontFamily: String(candidate?.intro?.messageFontFamily || defaults.intro.messageFontFamily).trim() || defaults.intro.messageFontFamily,
+                messageFontSize: Number.isFinite(introMessageFontSize) ? Math.min(32, Math.max(14, introMessageFontSize)) : defaults.intro.messageFontSize,
+                buttonText: String(candidate?.intro?.buttonText || defaults.intro.buttonText).trim() || defaults.intro.buttonText,
+                buttonFontFamily: String(candidate?.intro?.buttonFontFamily || defaults.intro.buttonFontFamily).trim() || defaults.intro.buttonFontFamily,
+                buttonFontSize: Number.isFinite(introButtonFontSize) ? Math.min(28, Math.max(14, introButtonFontSize)) : defaults.intro.buttonFontSize
+            },
             assistant: {
                 fontFamily: String(candidate?.assistant?.fontFamily || defaults.assistant.fontFamily).trim() || defaults.assistant.fontFamily,
                 fontSize: Number.isFinite(assistantFontSize) ? Math.min(42, Math.max(16, assistantFontSize)) : defaults.assistant.fontSize,
@@ -1935,6 +2007,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function applyConverseSettings(settings) {
         const nextSettings = sanitizeConverseSettings(settings);
+        if (introScreen) {
+            introScreen.classList.remove('intro-anim-none', 'intro-anim-fade', 'intro-anim-glow');
+            introScreen.classList.add(`intro-anim-${nextSettings.intro.animation}`);
+        }
+        if (introTitle) {
+            introTitle.textContent = nextSettings.intro.title;
+            introTitle.style.fontFamily = nextSettings.intro.titleFontFamily;
+            introTitle.style.fontSize = `${nextSettings.intro.titleFontSize}px`;
+        }
+        if (introMessage) {
+            introMessage.textContent = nextSettings.intro.message;
+            introMessage.style.fontFamily = nextSettings.intro.messageFontFamily;
+            introMessage.style.fontSize = `${nextSettings.intro.messageFontSize}px`;
+        }
+        if (introContinueBtn) {
+            introContinueBtn.textContent = nextSettings.intro.buttonText;
+            introContinueBtn.style.fontFamily = nextSettings.intro.buttonFontFamily;
+            introContinueBtn.style.fontSize = `${nextSettings.intro.buttonFontSize}px`;
+        }
+        if (!hasStartedConversation) {
+            toggleConversationUi(!nextSettings.intro.enabled);
+        }
         document.documentElement.style.setProperty('--assistant-response-font-family', nextSettings.assistant.fontFamily);
         document.documentElement.style.setProperty('--assistant-response-font-size', `${nextSettings.assistant.fontSize}px`);
         document.documentElement.style.setProperty('--user-response-font-family', nextSettings.user.fontFamily);
@@ -1947,6 +2041,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function hydrateConverseSettings() {
         const settings = sanitizeConverseSettings({
+            intro: {
+                enabled: safeStorageGet(STORAGE_KEYS.converseIntroEnabled, String(getDefaultConverseSettings().intro.enabled)) === 'true',
+                animation: safeStorageGet(STORAGE_KEYS.converseIntroAnimation, getDefaultConverseSettings().intro.animation),
+                title: safeStorageGet(STORAGE_KEYS.converseIntroTitle, getDefaultConverseSettings().intro.title),
+                titleFontFamily: safeStorageGet(STORAGE_KEYS.converseIntroTitleFontFamily, getDefaultConverseSettings().intro.titleFontFamily),
+                titleFontSize: safeStorageGet(STORAGE_KEYS.converseIntroTitleFontSize, String(getDefaultConverseSettings().intro.titleFontSize)),
+                message: safeStorageGet(STORAGE_KEYS.converseIntroMessage, getDefaultConverseSettings().intro.message),
+                messageFontFamily: safeStorageGet(STORAGE_KEYS.converseIntroMessageFontFamily, getDefaultConverseSettings().intro.messageFontFamily),
+                messageFontSize: safeStorageGet(STORAGE_KEYS.converseIntroMessageFontSize, String(getDefaultConverseSettings().intro.messageFontSize)),
+                buttonText: safeStorageGet(STORAGE_KEYS.converseIntroButtonText, getDefaultConverseSettings().intro.buttonText),
+                buttonFontFamily: safeStorageGet(STORAGE_KEYS.converseIntroButtonFontFamily, getDefaultConverseSettings().intro.buttonFontFamily),
+                buttonFontSize: safeStorageGet(STORAGE_KEYS.converseIntroButtonFontSize, String(getDefaultConverseSettings().intro.buttonFontSize))
+            },
             assistant: {
                 fontFamily: safeStorageGet(STORAGE_KEYS.converseAssistantFontFamily, getDefaultConverseSettings().assistant.fontFamily),
                 fontSize: safeStorageGet(STORAGE_KEYS.converseAssistantFontSize, String(getDefaultConverseSettings().assistant.fontSize)),
@@ -1958,6 +2065,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 animation: safeStorageGet(STORAGE_KEYS.converseUserAnimation, getDefaultConverseSettings().user.animation)
             }
         });
+        if (converseIntroEnabledInput) converseIntroEnabledInput.checked = settings.intro.enabled;
+        if (converseIntroAnimationSelect) converseIntroAnimationSelect.value = settings.intro.animation;
+        if (converseIntroTitleInput) converseIntroTitleInput.value = settings.intro.title;
+        if (converseIntroTitleFontFamilySelect) converseIntroTitleFontFamilySelect.value = settings.intro.titleFontFamily;
+        if (converseIntroTitleFontSizeInput) converseIntroTitleFontSizeInput.value = String(settings.intro.titleFontSize);
+        if (converseIntroMessageInput) converseIntroMessageInput.value = settings.intro.message;
+        if (converseIntroMessageFontFamilySelect) converseIntroMessageFontFamilySelect.value = settings.intro.messageFontFamily;
+        if (converseIntroMessageFontSizeInput) converseIntroMessageFontSizeInput.value = String(settings.intro.messageFontSize);
+        if (converseIntroButtonTextInput) converseIntroButtonTextInput.value = settings.intro.buttonText;
+        if (converseIntroButtonFontFamilySelect) converseIntroButtonFontFamilySelect.value = settings.intro.buttonFontFamily;
+        if (converseIntroButtonFontSizeInput) converseIntroButtonFontSizeInput.value = String(settings.intro.buttonFontSize);
         if (converseAssistantFontFamilySelect) converseAssistantFontFamilySelect.value = settings.assistant.fontFamily;
         if (converseAssistantFontSizeInput) converseAssistantFontSizeInput.value = String(settings.assistant.fontSize);
         if (converseAssistantAnimationSelect) converseAssistantAnimationSelect.value = settings.assistant.animation;
@@ -1969,6 +2087,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function saveConverseSettings() {
         const settings = sanitizeConverseSettings({
+            intro: {
+                enabled: !!converseIntroEnabledInput?.checked,
+                animation: converseIntroAnimationSelect?.value || '',
+                title: converseIntroTitleInput?.value || '',
+                titleFontFamily: converseIntroTitleFontFamilySelect?.value || '',
+                titleFontSize: converseIntroTitleFontSizeInput?.value || '',
+                message: converseIntroMessageInput?.value || '',
+                messageFontFamily: converseIntroMessageFontFamilySelect?.value || '',
+                messageFontSize: converseIntroMessageFontSizeInput?.value || '',
+                buttonText: converseIntroButtonTextInput?.value || '',
+                buttonFontFamily: converseIntroButtonFontFamilySelect?.value || '',
+                buttonFontSize: converseIntroButtonFontSizeInput?.value || ''
+            },
             assistant: {
                 fontFamily: converseAssistantFontFamilySelect?.value || '',
                 fontSize: converseAssistantFontSizeInput?.value || '',
@@ -1980,6 +2111,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 animation: converseUserAnimationSelect?.value || ''
             }
         });
+        safeStorageSet(STORAGE_KEYS.converseIntroEnabled, String(settings.intro.enabled));
+        safeStorageSet(STORAGE_KEYS.converseIntroAnimation, settings.intro.animation);
+        safeStorageSet(STORAGE_KEYS.converseIntroTitle, settings.intro.title);
+        safeStorageSet(STORAGE_KEYS.converseIntroTitleFontFamily, settings.intro.titleFontFamily);
+        safeStorageSet(STORAGE_KEYS.converseIntroTitleFontSize, String(settings.intro.titleFontSize));
+        safeStorageSet(STORAGE_KEYS.converseIntroMessage, settings.intro.message);
+        safeStorageSet(STORAGE_KEYS.converseIntroMessageFontFamily, settings.intro.messageFontFamily);
+        safeStorageSet(STORAGE_KEYS.converseIntroMessageFontSize, String(settings.intro.messageFontSize));
+        safeStorageSet(STORAGE_KEYS.converseIntroButtonText, settings.intro.buttonText);
+        safeStorageSet(STORAGE_KEYS.converseIntroButtonFontFamily, settings.intro.buttonFontFamily);
+        safeStorageSet(STORAGE_KEYS.converseIntroButtonFontSize, String(settings.intro.buttonFontSize));
         safeStorageSet(STORAGE_KEYS.converseAssistantFontFamily, settings.assistant.fontFamily);
         safeStorageSet(STORAGE_KEYS.converseAssistantFontSize, String(settings.assistant.fontSize));
         safeStorageSet(STORAGE_KEYS.converseAssistantAnimation, settings.assistant.animation);
@@ -1989,11 +2131,24 @@ document.addEventListener('DOMContentLoaded', () => {
         applyConverseSettings(settings);
         updateEmbedCode();
         flashButton(saveConverseSettingsBtn, 'Applied');
-        if (converseStatus) converseStatus.textContent = 'Converse typography applied to the builder preview.';
+        if (converseStatus) converseStatus.textContent = 'Converse and intro typography applied to the builder preview.';
     }
 
     function previewConverseSettings() {
         const settings = sanitizeConverseSettings({
+            intro: {
+                enabled: !!converseIntroEnabledInput?.checked,
+                animation: converseIntroAnimationSelect?.value || '',
+                title: converseIntroTitleInput?.value || '',
+                titleFontFamily: converseIntroTitleFontFamilySelect?.value || '',
+                titleFontSize: converseIntroTitleFontSizeInput?.value || '',
+                message: converseIntroMessageInput?.value || '',
+                messageFontFamily: converseIntroMessageFontFamilySelect?.value || '',
+                messageFontSize: converseIntroMessageFontSizeInput?.value || '',
+                buttonText: converseIntroButtonTextInput?.value || '',
+                buttonFontFamily: converseIntroButtonFontFamilySelect?.value || '',
+                buttonFontSize: converseIntroButtonFontSizeInput?.value || ''
+            },
             assistant: {
                 fontFamily: converseAssistantFontFamilySelect?.value || '',
                 fontSize: converseAssistantFontSizeInput?.value || '',
@@ -2277,6 +2432,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 background: footerBackgroundInput?.value || safeStorageGet(STORAGE_KEYS.footerBackground, getDefaultFooterSettings().background)
             }),
             converse: sanitizeConverseSettings({
+                intro: {
+                    enabled: converseIntroEnabledInput?.checked ?? (safeStorageGet(STORAGE_KEYS.converseIntroEnabled, String(getDefaultConverseSettings().intro.enabled)) === 'true'),
+                    animation: converseIntroAnimationSelect?.value || safeStorageGet(STORAGE_KEYS.converseIntroAnimation, getDefaultConverseSettings().intro.animation),
+                    title: converseIntroTitleInput?.value || safeStorageGet(STORAGE_KEYS.converseIntroTitle, getDefaultConverseSettings().intro.title),
+                    titleFontFamily: converseIntroTitleFontFamilySelect?.value || safeStorageGet(STORAGE_KEYS.converseIntroTitleFontFamily, getDefaultConverseSettings().intro.titleFontFamily),
+                    titleFontSize: converseIntroTitleFontSizeInput?.value || safeStorageGet(STORAGE_KEYS.converseIntroTitleFontSize, String(getDefaultConverseSettings().intro.titleFontSize)),
+                    message: converseIntroMessageInput?.value || safeStorageGet(STORAGE_KEYS.converseIntroMessage, getDefaultConverseSettings().intro.message),
+                    messageFontFamily: converseIntroMessageFontFamilySelect?.value || safeStorageGet(STORAGE_KEYS.converseIntroMessageFontFamily, getDefaultConverseSettings().intro.messageFontFamily),
+                    messageFontSize: converseIntroMessageFontSizeInput?.value || safeStorageGet(STORAGE_KEYS.converseIntroMessageFontSize, String(getDefaultConverseSettings().intro.messageFontSize)),
+                    buttonText: converseIntroButtonTextInput?.value || safeStorageGet(STORAGE_KEYS.converseIntroButtonText, getDefaultConverseSettings().intro.buttonText),
+                    buttonFontFamily: converseIntroButtonFontFamilySelect?.value || safeStorageGet(STORAGE_KEYS.converseIntroButtonFontFamily, getDefaultConverseSettings().intro.buttonFontFamily),
+                    buttonFontSize: converseIntroButtonFontSizeInput?.value || safeStorageGet(STORAGE_KEYS.converseIntroButtonFontSize, String(getDefaultConverseSettings().intro.buttonFontSize))
+                },
                 assistant: {
                     fontFamily: converseAssistantFontFamilySelect?.value || safeStorageGet(STORAGE_KEYS.converseAssistantFontFamily, getDefaultConverseSettings().assistant.fontFamily),
                     fontSize: converseAssistantFontSizeInput?.value || safeStorageGet(STORAGE_KEYS.converseAssistantFontSize, String(getDefaultConverseSettings().assistant.fontSize)),
@@ -2504,6 +2672,17 @@ document.addEventListener('DOMContentLoaded', () => {
         safeStorageSet(STORAGE_KEYS.footerFontSize, String(snapshot.footer.fontSize));
         safeStorageSet(STORAGE_KEYS.footerAnimation, snapshot.footer.animation);
         safeStorageSet(STORAGE_KEYS.footerBackground, snapshot.footer.background);
+        safeStorageSet(STORAGE_KEYS.converseIntroEnabled, String(snapshot.converse.intro.enabled));
+        safeStorageSet(STORAGE_KEYS.converseIntroAnimation, snapshot.converse.intro.animation);
+        safeStorageSet(STORAGE_KEYS.converseIntroTitle, snapshot.converse.intro.title);
+        safeStorageSet(STORAGE_KEYS.converseIntroTitleFontFamily, snapshot.converse.intro.titleFontFamily);
+        safeStorageSet(STORAGE_KEYS.converseIntroTitleFontSize, String(snapshot.converse.intro.titleFontSize));
+        safeStorageSet(STORAGE_KEYS.converseIntroMessage, snapshot.converse.intro.message);
+        safeStorageSet(STORAGE_KEYS.converseIntroMessageFontFamily, snapshot.converse.intro.messageFontFamily);
+        safeStorageSet(STORAGE_KEYS.converseIntroMessageFontSize, String(snapshot.converse.intro.messageFontSize));
+        safeStorageSet(STORAGE_KEYS.converseIntroButtonText, snapshot.converse.intro.buttonText);
+        safeStorageSet(STORAGE_KEYS.converseIntroButtonFontFamily, snapshot.converse.intro.buttonFontFamily);
+        safeStorageSet(STORAGE_KEYS.converseIntroButtonFontSize, String(snapshot.converse.intro.buttonFontSize));
         safeStorageSet(STORAGE_KEYS.converseAssistantFontFamily, snapshot.converse.assistant.fontFamily);
         safeStorageSet(STORAGE_KEYS.converseAssistantFontSize, String(snapshot.converse.assistant.fontSize));
         safeStorageSet(STORAGE_KEYS.converseAssistantAnimation, snapshot.converse.assistant.animation);
@@ -2829,6 +3008,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const converseSettings = sanitizeConverseSettings(snapshot?.converse || {});
+        if (converseIntroEnabledInput) converseIntroEnabledInput.checked = converseSettings.intro.enabled;
+        if (converseIntroAnimationSelect) converseIntroAnimationSelect.value = converseSettings.intro.animation;
+        if (converseIntroTitleInput) converseIntroTitleInput.value = converseSettings.intro.title;
+        if (converseIntroTitleFontFamilySelect) converseIntroTitleFontFamilySelect.value = converseSettings.intro.titleFontFamily;
+        if (converseIntroTitleFontSizeInput) converseIntroTitleFontSizeInput.value = String(converseSettings.intro.titleFontSize);
+        if (converseIntroMessageInput) converseIntroMessageInput.value = converseSettings.intro.message;
+        if (converseIntroMessageFontFamilySelect) converseIntroMessageFontFamilySelect.value = converseSettings.intro.messageFontFamily;
+        if (converseIntroMessageFontSizeInput) converseIntroMessageFontSizeInput.value = String(converseSettings.intro.messageFontSize);
+        if (converseIntroButtonTextInput) converseIntroButtonTextInput.value = converseSettings.intro.buttonText;
+        if (converseIntroButtonFontFamilySelect) converseIntroButtonFontFamilySelect.value = converseSettings.intro.buttonFontFamily;
+        if (converseIntroButtonFontSizeInput) converseIntroButtonFontSizeInput.value = String(converseSettings.intro.buttonFontSize);
         if (converseAssistantFontFamilySelect) converseAssistantFontFamilySelect.value = converseSettings.assistant.fontFamily;
         if (converseAssistantFontSizeInput) converseAssistantFontSizeInput.value = String(converseSettings.assistant.fontSize);
         if (converseAssistantAnimationSelect) converseAssistantAnimationSelect.value = converseSettings.assistant.animation;
@@ -3266,6 +3456,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function showIntroScreen() {
         hasStartedConversation = false;
+        const introEnabled = sanitizeConverseSettings({
+            intro: {
+                enabled: !!converseIntroEnabledInput?.checked
+            }
+        }).intro.enabled;
+        if (!introEnabled) {
+            startConversation();
+            return;
+        }
         toggleConversationUi(false);
         setPrimaryInputMode('default');
         if (introContinueBtn) {
