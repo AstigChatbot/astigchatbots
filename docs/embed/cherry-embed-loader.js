@@ -32,8 +32,8 @@
   if (!mountTarget && isInline) {
     mountTarget = document.createElement('div');
     if (targetId) mountTarget.id = targetId;
-    mountTarget.style.width = 'min(100%, 600px)';
-    mountTarget.style.minHeight = '720px';
+    mountTarget.style.width = 'min(100%, 480px)';
+    mountTarget.style.minHeight = '560px';
     mountTarget.style.margin = '0 auto';
     script.insertAdjacentElement('beforebegin', mountTarget);
   }
@@ -65,7 +65,8 @@
   panel.style.right = isInline || targetId ? '0' : '24px';
   panel.style.bottom = isInline || targetId ? '0' : '104px';
   panel.style.width = isInline ? '100%' : 'min(420px, calc(100vw - 24px))';
-  panel.style.height = isInline ? '720px' : 'min(760px, calc(100vh - 132px))';
+  panel.style.height = isInline ? 'min(640px, 78vh)' : 'min(760px, calc(100vh - 132px))';
+  panel.style.minHeight = isInline ? '560px' : '';
   panel.style.borderRadius = isTransparentTheme ? '0' : '24px';
   panel.style.overflow = 'hidden';
   panel.style.background = 'transparent';
@@ -202,7 +203,13 @@
       }
       const html = await response.text();
       const baseHref = url.toString().replace(/[^/]*$/, '');
-      frame.srcdoc = html.replace(/<head([^>]*)>/i, `<head$1><base href="${baseHref}">`);
+      let nextHtml = html.replace(/<head([^>]*)>/i, `<head$1><base href="${baseHref}">`);
+      if (isInline) {
+        nextHtml = nextHtml.replace(/<html([^>]*)>/i, (match, attrs) => {
+          return /data-cherry-inline/i.test(attrs) ? `<html${attrs}>` : `<html${attrs} data-cherry-inline>`;
+        });
+      }
+      frame.srcdoc = nextHtml;
       frame.addEventListener('load', () => {
         frameLoaded = true;
         try {
