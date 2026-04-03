@@ -1,6 +1,23 @@
 // Embed Cherry by loading the builder app in an iframe and applying the current project snapshot.
 (function () {
-  const script = document.currentScript;
+  function resolveScriptElement() {
+    if (document.currentScript instanceof HTMLScriptElement) {
+      return document.currentScript;
+    }
+
+    const scriptCandidates = Array.from(document.getElementsByTagName('script')).reverse();
+    return scriptCandidates.find((candidate) => {
+      if (!(candidate instanceof HTMLScriptElement)) return false;
+      const src = candidate.getAttribute('src') || '';
+      const hasCherryData = candidate.hasAttribute('data-project') || candidate.hasAttribute('data-app-url');
+      return hasCherryData && (
+        /(?:^|\/)(?:auto-embed|cherry-embed-loader)\.js(?:[?#].*)?$/i.test(src) ||
+        candidate.hasAttribute('data-cherry-loader')
+      );
+    }) || null;
+  }
+
+  const script = resolveScriptElement();
   if (!script) return;
 
   function decodeProject(value) {
