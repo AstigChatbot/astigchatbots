@@ -67,21 +67,21 @@
   const shape = (script.dataset.iconShape || widget.shape || 'circle').trim();
   const anim = (script.dataset.iconAnim || widget.animation || 'none').trim();
   const is3d = (script.dataset.icon3d || String(!!widget.is3d)) === 'true';
-  const iconSize = Math.max(20, Math.min(72, parseInt(script.dataset.iconSize || widget.iconSize || '26', 10) || 26));
+  const iconSize = Math.max(18, Math.min(36, parseInt(script.dataset.iconSize || widget.iconSize || '24', 10) || 24));
 
   const root = document.createElement('div');
   root.style.position = isInline || targetId ? 'relative' : 'fixed';
-  root.style.right = isInline || targetId ? 'auto' : '24px';
-  root.style.bottom = isInline || targetId ? 'auto' : '24px';
+  root.style.right = isInline || targetId ? 'auto' : '16px';
+  root.style.bottom = isInline || targetId ? 'auto' : '16px';
   root.style.width = isInline ? '100%' : '';
   root.style.zIndex = isInline ? 'auto' : '2147483000';
   root.style.fontFamily = "'Outfit', system-ui, sans-serif";
 
   const panel = document.createElement('div');
   panel.style.position = isInline || targetId ? 'relative' : 'fixed';
-  panel.style.right = isInline || targetId ? '0' : '24px';
-  panel.style.bottom = isInline || targetId ? '0' : '104px';
-  panel.style.width = isInline ? '100%' : 'min(420px, calc(100vw - 24px))';
+  panel.style.right = isInline || targetId ? '0' : '16px';
+  panel.style.bottom = isInline || targetId ? '0' : '84px';
+  panel.style.width = isInline ? '100%' : 'min(400px, calc(100vw - 20px))';
   panel.style.height = isInline ? 'min(640px, 78vh)' : 'min(760px, calc(100vh - 132px))';
   panel.style.minHeight = isInline ? '560px' : '';
   panel.style.borderRadius = isTransparentTheme ? '0' : '24px';
@@ -113,8 +113,8 @@
     launcher.type = 'button';
     launcher.setAttribute('aria-label', label);
     launcher.title = `${label} - ${subtext}`;
-    launcher.style.width = '64px';
-    launcher.style.height = '64px';
+    launcher.style.width = '56px';
+    launcher.style.height = '56px';
     launcher.style.borderRadius = shape === 'square' ? '12px' : shape === 'rounded' ? '18px' : '999px';
     launcher.style.border = '1px solid rgba(255, 255, 255, 0.18)';
     launcher.style.background = 'linear-gradient(135deg, #6d64ff 0%, #7f4bff 100%)';
@@ -126,16 +126,16 @@
     launcher.style.placeItems = 'center';
     launcher.style.padding = '0';
     launcher.style.position = targetId ? 'absolute' : 'fixed';
-    launcher.style.right = targetId ? '0' : '24px';
-    launcher.style.bottom = targetId ? '0' : '24px';
+    launcher.style.right = targetId ? '0' : '16px';
+    launcher.style.bottom = targetId ? '0' : '16px';
     launcher.style.zIndex = '2147483001';
   }
 
   if (hint) {
     hint.textContent = subtext;
     hint.style.position = targetId ? 'absolute' : 'fixed';
-    hint.style.right = targetId ? '72px' : '96px';
-    hint.style.bottom = targetId ? '8px' : '26px';
+    hint.style.right = targetId ? '64px' : '80px';
+    hint.style.bottom = targetId ? '6px' : '18px';
     hint.style.maxWidth = '220px';
     hint.style.padding = '10px 14px';
     hint.style.borderRadius = '14px';
