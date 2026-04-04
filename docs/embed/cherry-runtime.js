@@ -1976,18 +1976,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function applyVideoSettings(settings) {
         const nextSettings = sanitizeVideoSettings(settings);
         if (!headerVideo || !headerVideoPlayer || !headerVideoImage) return;
-        if (isWidgetEmbedded) {
-            setHeaderMediaVisible(false);
-            headerVideo.classList.remove('is-draggable-media', 'is-dragging-media');
-            headerVideoPlayer.pause?.();
-            headerVideoPlayer.hidden = true;
-            headerVideoPlayer.removeAttribute('src');
-            headerVideoPlayer.load();
-            headerVideoImage.hidden = true;
-            headerVideoImage.classList.remove('is-broken');
-            headerVideoImage.removeAttribute('src');
-            return;
-        }
         headerVideo.style.setProperty('--header-media-frame-height', `${nextSettings.size}px`);
         headerVideo.style.setProperty('--header-media-scale', '1');
         const maxOffsetX = (headerVideo.clientWidth || 0) * 0.2;
