@@ -45,17 +45,29 @@
   const targetId = (script.dataset.target || '').trim();
   const mode = (script.dataset.mode || '').trim().toLowerCase();
   const isInline = mode === 'inline';
-  let mountTarget = targetId ? document.getElementById(targetId) : null;
-  if (!mountTarget && isInline) {
-    mountTarget = document.createElement('div');
-    if (targetId) mountTarget.id = targetId;
-    mountTarget.style.width = 'min(100%, 480px)';
-    mountTarget.style.minHeight = '560px';
-    mountTarget.style.margin = '0 auto';
-    script.insertAdjacentElement('beforebegin', mountTarget);
-  }
-  if (!mountTarget) {
-    mountTarget = document.body;
+
+  function resolveMountTarget() {
+    const existingTarget = targetId ? document.getElementById(targetId) : null;
+    if (existingTarget) return existingTarget;
+
+    if (isInline) {
+      const fallbackTarget = document.createElement('div');
+      if (targetId) fallbackTarget.id = targetId;
+      fallbackTarget.style.width = 'min(100%, 480px)';
+      fallbackTarget.style.minHeight = '560px';
+      fallbackTarget.style.margin = '0 auto';
+
+      const fallbackParent = document.body || script.parentElement;
+      if (fallbackParent === document.body) {
+        document.body.appendChild(fallbackTarget);
+      } else {
+        script.insertAdjacentElement('beforebegin', fallbackTarget);
+      }
+
+      return fallbackTarget;
+    }
+
+    return document.body || script.parentElement;
   }
 
   const widget = project?.widget || {};
@@ -246,10 +258,19 @@
       ensureFrame();
       if (frameLoaded) postConfig();
     }
+    if (isInline) {
+      panel.style.display = '';
+      panel.style.opacity = '1';
+      panel.style.pointerEvents = 'auto';
+      panel.style.transform = 'none';
+      return;
+    }
     panel.style.opacity = isOpen ? '1' : '0';
     panel.style.pointerEvents = isOpen ? 'auto' : 'none';
     panel.style.transform = isOpen ? 'translateY(0) scale(1)' : 'translateY(14px) scale(0.98)';
-    launcher.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    if (launcher) {
+      launcher.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
   }
 
   function handleFrameMessage(event) {
@@ -298,12 +319,18 @@
   if (hint) {
     root.appendChild(hint);
   }
-  mountTarget.appendChild(root);
+  function mountWidget() {
+    const mountTarget = resolveMountTarget();
+    if (!mountTarget) return;
+    if (!root.isConnected) {
+      mountTarget.appendChild(root);
+    }
+    ensureFrame();
+  }
 
-  if (isInline) {
-    ensureFrame();
+  if (isInline && targetId && !document.getElementById(targetId) && document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', mountWidget, { once: true });
   } else {
-    // Preload the iframe once the launcher is mounted so the first click only opens it.
-    ensureFrame();
+    mountWidget();
   }
 })();
