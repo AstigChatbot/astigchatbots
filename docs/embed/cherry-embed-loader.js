@@ -54,8 +54,8 @@
       const fallbackTarget = document.createElement('div');
       if (targetId) fallbackTarget.id = targetId;
       fallbackTarget.style.width = '100%';
-      fallbackTarget.style.maxWidth = '440px';
-      fallbackTarget.style.minHeight = '560px';
+      fallbackTarget.style.maxWidth = '640px';
+      fallbackTarget.style.minHeight = '760px';
       fallbackTarget.style.margin = '0 auto';
 
       const fallbackParent = document.body || script.parentElement;
@@ -87,7 +87,7 @@
   root.style.right = isInline || targetId ? 'auto' : '16px';
   root.style.bottom = isInline || targetId ? 'auto' : '16px';
   root.style.width = isInline ? '100%' : '';
-  root.style.maxWidth = isInline ? '440px' : '';
+  root.style.maxWidth = isInline ? '640px' : '';
   root.style.margin = isInline ? '0 auto' : '';
   root.style.zIndex = isInline ? 'auto' : '2147483000';
   root.style.fontFamily = "'Outfit', system-ui, sans-serif";
@@ -97,10 +97,10 @@
   panel.style.right = isInline || targetId ? '0' : '16px';
   panel.style.bottom = isInline || targetId ? '0' : '84px';
   panel.style.width = isInline ? '100%' : 'min(400px, calc(100vw - 20px))';
-  panel.style.maxWidth = isInline ? '440px' : '';
+  panel.style.maxWidth = isInline ? '640px' : '';
   panel.style.margin = isInline ? '0 auto' : '';
-  panel.style.height = isInline ? 'min(640px, 78vh)' : 'min(760px, calc(100vh - 132px))';
-  panel.style.minHeight = isInline ? '560px' : '';
+  panel.style.height = isInline ? 'min(820px, 100vh)' : 'min(760px, calc(100vh - 132px))';
+  panel.style.minHeight = isInline ? '760px' : '';
   panel.style.borderRadius = isTransparentTheme ? '0' : '24px';
   panel.style.overflow = 'hidden';
   panel.style.background = 'transparent';
